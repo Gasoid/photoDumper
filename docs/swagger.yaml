@@ -1,0 +1,146 @@
+basePath: /api/
+host: localhost:8080
+info:
+  contact:
+    name: Rinat Almakhov
+    url: https://github.com/Gasoid/
+  description: app downloads photos from vk.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  title: PhotoDumper
+  version: "1.0"
+paths:
+  /album-photos/{sourceName}/{albumID}/:
+    get:
+      consumes:
+      - application/json
+      description: get photos of album
+      parameters:
+      - description: source name
+        in: path
+        name: sourceName
+        required: true
+        type: string
+      - description: album ID
+        in: path
+        name: albumID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: getAlbumPhotos
+          schema:
+            items:
+              type: string
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Album Photos
+  /albums/{sourceName}/:
+    get:
+      consumes:
+      - application/json
+      description: get albums list
+      parameters:
+      - description: source name
+        in: path
+        name: sourceName
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: albums
+          schema:
+            items:
+              type: string
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: Albums
+  /download-album/{sourceName}/{albumID}/:
+    get:
+      consumes:
+      - application/json
+      description: download all photos of particular album
+      parameters:
+      - description: source name
+        in: path
+        name: sourceName
+        required: true
+        type: string
+      - description: album ID
+        in: path
+        name: albumID
+        required: true
+        type: string
+      - description: directory where photos will be stored
+        in: query
+        name: dir
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: download photos of album
+  /download-all-albums/{sourceName}/:
+    get:
+      consumes:
+      - application/json
+      description: download all photos of all albums
+      parameters:
+      - description: source name
+        in: path
+        name: sourceName
+        required: true
+        type: string
+      - description: directory where photos will be stored
+        in: query
+        name: dir
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              type: string
+            type: array
+      security:
+      - ApiKeyAuth: []
+      summary: download photos of albums
+  /sources/:
+    get:
+      consumes:
+      - application/json
+      description: get sources list
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: getSources
+          schema:
+            items:
+              type: string
+            type: array
+      summary: Sources
+securityDefinitions:
+  ApiKeyAuth:
+    in: query
+    name: api_key
+    type: apiKey
+swagger: "2.0"
