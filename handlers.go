@@ -50,7 +50,7 @@ func getAlbums(c *gin.Context) {
 // @Param        sourceName  path     string  true  "source name"
 // @Param        albumID     path     string  true  "album ID"
 // @Success      200         {array}  string  "getAlbumPhotos"
-// @Router       /album-photos/{sourceName}/{albumID}/ [get]
+// @Router       /album-photos/{albumID}/{sourceName}/ [get]
 // @Security     ApiKeyAuth
 func getAlbumPhotos(c *gin.Context) {
 	api_key := c.Query("api_key")
@@ -76,7 +76,7 @@ func getAlbumPhotos(c *gin.Context) {
 // @Param        albumID     path     string  true  "album ID"
 // @Param        dir         query    string  true  "directory where photos will be stored"
 // @Success      200         {array}  string
-// @Router       /download-album/{sourceName}/{albumID}/ [get]
+// @Router       /download-album/{albumID}/{sourceName}/ [get]
 // @Security     ApiKeyAuth
 func downloadAlbum(c *gin.Context) {
 	api_key := c.Query("api_key")
@@ -85,11 +85,7 @@ func downloadAlbum(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err = source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	go source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
 	c.JSON(http.StatusOK, gin.H{})
 }
 

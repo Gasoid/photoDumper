@@ -1,6 +1,7 @@
 package vk
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -11,12 +12,25 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"io/ioutil"
+
+	"github.com/Gasoid/go-dms/dms"
 	"github.com/SevereCloud/vksdk/v2/api"
+
+	exif "github.com/dsoprea/go-exif/v2"
+	exifcommon "github.com/dsoprea/go-exif/v2/common"
+	jpegstructure "github.com/dsoprea/go-jpeg-image-structure"
 )
 
 const (
-	maxCount = 1000
+	maxCount        = 1000
+	concurrentFiles = 5
+)
+
+var (
+	fileChannel chan DownloadFile
 )
 
 type Vk struct {
@@ -26,11 +40,132 @@ type Vk struct {
 	vkAPI    *api.VK
 }
 
+type DownloadFile struct {
+	dir       string
+	url       string
+	created   time.Time
+	albumName string
+	longitude,
+	latitude float64
+}
+
+func (f *DownloadFile) filePath() (string, error) {
+	name, err := FileName(f.url)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	return path.Join(f.dir, name), nil
+}
+
+// EXIF HELL
+func (f *DownloadFile) setExifInfo() {
+	filepath, err := f.filePath()
+	if err != nil {
+		log.Println("filePath()", err)
+		return
+	}
+	jmp := jpegstructure.NewJpegMediaParser()
+	intfc, err := jmp.ParseFile(filepath)
+	if err != nil {
+		log.Println("ParseFile(filepath)", err)
+		return
+	}
+	sl := intfc.(*jpegstructure.SegmentList)
+	rootIb, err := sl.ConstructExifBuilder()
+	if err != nil {
+		im := exif.NewIfdMappingWithStandard()
+		ti := exif.NewTagIndex()
+		err := exif.LoadStandardTags(ti)
+		if err != nil {
+			log.Println("ConstructExifBuilder()", err)
+			return
+		}
+
+		rootIb = exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
+	}
+
+	ifd0Ib, err := exif.GetOrCreateIbFromRootIb(rootIb, "IFD0")
+	if err != nil {
+		log.Println("GetOrCreateIbFromRootIb(rootIb, ifd0Path)", err)
+		return
+	}
+
+	// Description
+	description := fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName)
+	err = ifd0Ib.SetStandardWithName("ImageDescription", description)
+	if err != nil {
+		log.Println("SetStandardWithName(ImageDescription)", err)
+		return
+	}
+
+	dateTime := exif.ExifFullTimestampString(f.created)
+	err = ifd0Ib.SetStandardWithName("DateTime", dateTime)
+	if err != nil {
+		log.Println("SetStandardWithName(DateTime)", err)
+		return
+	}
+
+	if f.latitude != 0 && f.longitude != 0 {
+		//log.Println("There are GPS coordinates:", f.latitude, f.longitude, filepath)
+
+		childIb, err := exif.GetOrCreateIbFromRootIb(rootIb, "IFD/GPSInfo")
+		if err != nil {
+			log.Println("GetOrCreateIbFromRootIb(rootIbf.latitude, GPSInfo)", err)
+			return
+		}
+		lat, lon, err := dms.NewDMS(f.latitude, f.longitude)
+		if err != nil {
+			log.Println("dms.NewDMS(f.latitude, f.longitude)", err)
+			return
+		}
+		updatedGiLat := exif.GpsDegrees{
+			Degrees: float64(lat.Degrees),
+			Minutes: float64(lat.Minutes),
+			Seconds: lat.Seconds,
+		}
+
+		err = childIb.SetStandardWithName("GPSLatitude", updatedGiLat.Raw())
+		if err != nil {
+			log.Println("SetStandardWithName(GPS)", err)
+			return
+		}
+		updatedGiLong := exif.GpsDegrees{
+			Degrees: float64(lon.Degrees),
+			Minutes: float64(lon.Minutes),
+			Seconds: lon.Seconds,
+		}
+
+		err = childIb.SetStandardWithName("GPSLongitude", updatedGiLong.Raw())
+		if err != nil {
+			log.Println("SetStandardWithName(GPS)", err)
+			return
+		}
+	}
+
+	err = sl.SetExif(rootIb)
+	if err != nil {
+		log.Println("SetExif()", err)
+		return
+	}
+	b := bytes.NewBufferString("")
+	err = sl.Write(b)
+	if err != nil {
+		log.Println("Write(b)", err)
+		return
+	}
+	ioutil.WriteFile(filepath, b.Bytes(), 0666)
+}
+
 type Albums interface {
 	Add(name, cover string)
 }
 
 func New(creds string) *Vk {
+	if fileChannel == nil {
+		fileChannel = make(chan DownloadFile, concurrentFiles)
+		go downloadFile()
+	}
 	return &Vk{token: creds, vkAPI: api.NewVK(creds)}
 }
 
@@ -41,7 +176,14 @@ func (v *Vk) GetAlbums() ([]map[string]string, error) {
 	}
 	albums := make([]map[string]string, resp.Count)
 	for i, album := range resp.Items {
-		albums[i] = map[string]string{"thumb": album.ThumbSrc, "title": album.Title, "id": fmt.Sprint(album.ID)}
+		created := time.Unix(int64(album.Created), 0)
+		albums[i] = map[string]string{
+			"thumb":   album.ThumbSrc,
+			"title":   album.Title,
+			"id":      fmt.Sprint(album.ID),
+			"created": created.Format(time.RFC3339),
+			// "count": album.,
+		}
 	}
 	return albums, nil
 }
@@ -95,9 +237,15 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 			log.Printf("DownloadFile: photo.MaxSize().URL (%q, album is %q) is empty", photo.ID, albumResp.Items[0].Title)
 			continue
 		}
-		err := DownloadFile(albumDir, photo.MaxSize().URL)
-		if err != nil {
-			log.Println("DownloadFile:", err)
+
+		created := time.Unix(int64(photo.Date), 0)
+		fileChannel <- DownloadFile{
+			dir:       albumDir,
+			url:       photo.MaxSize().URL,
+			created:   created,
+			albumName: albumResp.Items[0].Title,
+			latitude:  photo.Lat,
+			longitude: photo.Long,
 		}
 	}
 
@@ -126,27 +274,38 @@ func FileName(s string) (string, error) {
 	return filepath.Base(u.Path), nil
 }
 
-func DownloadFile(dir string, url string) error {
+func downloadFile() {
+	for file := range fileChannel {
+		f := file
+		go func() {
+			// Get the data
+			resp, err := http.Get(f.url)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			defer resp.Body.Close()
+			filepath, err := f.filePath()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			// Create the file
+			out, err := os.Create(filepath)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			defer out.Close()
 
-	// Get the data
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
+			// Write the body to file
+			_, err = io.Copy(out, resp.Body)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			f.setExifInfo()
+		}()
 	}
-	defer resp.Body.Close()
-	name, err := FileName(url)
-	if err != nil {
-		return err
-	}
-	filepath := path.Join(dir, name)
-	// Create the file
-	out, err := os.Create(filepath)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	return err
+	log.Println("channel closed")
 }

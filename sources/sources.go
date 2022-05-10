@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	Instagram string = "instagram"
-	VK        string = "vk"
+	//Instagram string = "instagram"
+	VK string = "vk"
 )
 
 var (
@@ -64,7 +64,6 @@ func New(sourceName, creds string) (*Social, error) {
 		return nil, ErrSourceNotFound
 	}
 	s := &Social{name: sourceName, creds: creds}
-	//var source Source
 	switch sourceName {
 	case "vk":
 		s.source = vk.New(creds)
@@ -73,5 +72,5 @@ func New(sourceName, creds string) (*Social, error) {
 }
 
 func Sources() []string {
-	return []string{Instagram, VK}
+	return []string{VK}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "github.com/Gasoid/photoDumper/docs"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
 	swaggerFiles "github.com/swaggo/files"
@@ -24,19 +25,23 @@ import (
 // @in query
 // @name api_key
 func main() {
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 	router := gin.Default()
+	router.Use(cors.New(config))
 	api := router.Group("/api")
 	{
 		api.GET("/sources/", getSources)
 		auth := api.Group("/", Auth())
 		{
 			auth.GET("/albums/:sourceName/", getAlbums)
-			auth.GET("/album-photos/:sourceName/:albumID/", getAlbumPhotos)
+			auth.GET("/album-photos/:albumID/:sourceName/", getAlbumPhotos)
 			auth.GET("/download-all-albums/:sourceName/", downloadAllAlbums)
-			auth.GET("/download-album/:sourceName/:albumID/", downloadAlbum)
+			auth.GET("/download-album/:albumID/:sourceName/", downloadAlbum)
 		}
 
 	}
+
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 	router.Run(":8080")
 }
