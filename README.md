@@ -1,4 +1,11 @@
 # photoDumper
+Application downloads album photos from VK
+
+features:
+- oauth2
+- exif metadata: dateTime, GPS coordinates
+
+
 Run:
 ```bash
 go run ./
