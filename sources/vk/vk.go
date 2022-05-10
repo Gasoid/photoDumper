@@ -233,15 +233,21 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	}
 
 	for _, photo := range resp.Items {
+		var url string
 		if photo.MaxSize().URL == "" {
-			log.Printf("DownloadFile: photo.MaxSize().URL (%q, album is %q) is empty", photo.ID, albumResp.Items[0].Title)
-			continue
+			for _, s := range photo.Sizes {
+				if s.Type == "x" {
+					url = s.URL
+				}
+			}
+		} else {
+			url = photo.MaxSize().URL
 		}
 
 		created := time.Unix(int64(photo.Date), 0)
 		fileChannel <- DownloadFile{
 			dir:       albumDir,
-			url:       photo.MaxSize().URL,
+			url:       url,
 			created:   created,
 			albumName: albumResp.Items[0].Title,
 			latitude:  photo.Lat,
@@ -284,6 +290,10 @@ func downloadFile() {
 				log.Println(err)
 				return
 			}
+			if resp.StatusCode != http.StatusOK {
+				log.Printf("%q is unavailable. code is 404", f.url)
+				return
+			}
 			defer resp.Body.Close()
 			filepath, err := f.filePath()
 			if err != nil {
@@ -296,7 +306,6 @@ func downloadFile() {
 				log.Println(err)
 				return
 			}
-			defer out.Close()
 
 			// Write the body to file
 			_, err = io.Copy(out, resp.Body)
@@ -304,6 +313,7 @@ func downloadFile() {
 				log.Println(err)
 				return
 			}
+			out.Close()
 			f.setExifInfo()
 		}()
 	}
