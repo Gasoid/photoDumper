@@ -52,7 +52,7 @@ type DownloadFile struct {
 func (f *DownloadFile) filePath() (string, error) {
 	name, err := FileName(f.url)
 	if err != nil {
-		log.Println(err)
+		log.Println("filePath()", err)
 		return "", err
 	}
 	return path.Join(f.dir, name), nil
@@ -170,18 +170,22 @@ func New(creds string) *Vk {
 }
 
 func (v *Vk) GetAlbums() ([]map[string]string, error) {
-	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1, "need_system": 1})
+	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1})
 	if err != nil {
 		return nil, fmt.Errorf("GetAlbums error: %w", err)
 	}
 	albums := make([]map[string]string, resp.Count)
 	for i, album := range resp.Items {
+		if album.ID < 0 {
+			continue
+		}
 		created := time.Unix(int64(album.Created), 0)
 		albums[i] = map[string]string{
 			"thumb":   album.ThumbSrc,
 			"title":   album.Title,
 			"id":      fmt.Sprint(album.ID),
 			"created": created.Format(time.RFC3339),
+			"size":    fmt.Sprint(album.Size),
 			// "count": album.,
 		}
 	}

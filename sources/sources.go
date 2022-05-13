@@ -2,6 +2,9 @@ package sources
 
 import (
 	"errors"
+	"log"
+	"os"
+	"path"
 
 	"github.com/Gasoid/photoDumper/sources/vk"
 )
@@ -36,12 +39,34 @@ func (s *Social) GetAlbums() ([]map[string]string, error) {
 	return s.source.GetAlbums()
 }
 
+func (s *Social) dirPath(dir string) (string, error) {
+	if dir[:1] == "~" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			log.Println("filePath()", err)
+			return "", err
+		}
+		dir = path.Join(home, dir[1:])
+	}
+	return dir, nil
+}
+
 func (s *Social) DownloadAllAlbums(dir string) error {
+	dir, err := s.dirPath(dir)
+	if err != nil {
+		log.Println("DownloadAllAlbums(dir string)", err)
+		return err
+	}
 	return s.source.DownloadAllAlbums(dir)
 }
 
 // DownloadAlbum runs copying process to a particular directory
 func (s *Social) DownloadAlbum(albumID, dir string) error {
+	dir, err := s.dirPath(dir)
+	if err != nil {
+		log.Println("DownloadAlbum(albumID, dir string)", err)
+		return err
+	}
 	return s.source.DownloadAlbum(albumID, dir)
 }
 
