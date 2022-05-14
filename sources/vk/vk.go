@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -55,7 +54,7 @@ func (f *DownloadFile) filePath() (string, error) {
 		log.Println("filePath()", err)
 		return "", err
 	}
-	return path.Join(f.dir, name), nil
+	return filepath.Join(f.dir, name), nil
 }
 
 // EXIF HELL
@@ -226,7 +225,7 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	if albumResp.Items[0].Title == "" {
 		return errors.New("album title is empty")
 	}
-	albumDir := path.Join(dir, albumResp.Items[0].Title)
+	albumDir := filepath.Join(dir, albumResp.Items[0].Title)
 	_, err = os.Stat(albumDir)
 	if err != nil {
 		err = os.Mkdir(albumDir, 0750)

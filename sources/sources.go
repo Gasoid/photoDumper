@@ -4,7 +4,7 @@ import (
 	"errors"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 
 	"github.com/Gasoid/photoDumper/sources/vk"
 )
@@ -46,13 +46,26 @@ func (s *Social) dirPath(dir string) (string, error) {
 			log.Println("filePath()", err)
 			return "", err
 		}
-		dir = path.Join(home, dir[1:])
+		dir = filepath.Join(home, filepath.FromSlash(dir[1:]))
 	}
 	return dir, nil
 }
 
-func (s *Social) DownloadAllAlbums(dir string) error {
+func (s *Social) prepareDir(dir string) (string, error) {
 	dir, err := s.dirPath(dir)
+	if err != nil {
+		log.Println("DownloadAllAlbums(dir string)", err)
+		return "", err
+	}
+	err = os.MkdirAll(dir, 0750)
+	if err != nil {
+		log.Println("DownloadAllAlbums(dir string)", err)
+	}
+	return dir, err
+}
+
+func (s *Social) DownloadAllAlbums(dir string) error {
+	dir, err := s.prepareDir(dir)
 	if err != nil {
 		log.Println("DownloadAllAlbums(dir string)", err)
 		return err
@@ -62,7 +75,7 @@ func (s *Social) DownloadAllAlbums(dir string) error {
 
 // DownloadAlbum runs copying process to a particular directory
 func (s *Social) DownloadAlbum(albumID, dir string) error {
-	dir, err := s.dirPath(dir)
+	dir, err := s.prepareDir(dir)
 	if err != nil {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
 		return err

@@ -3,12 +3,16 @@ Application downloads album photos from VK
 
 ![photo_2022-05-13_21-30-47](https://user-images.githubusercontent.com/833157/168378024-1f67e441-507c-4a43-8613-17e9a145d252.jpg)
 
-features:
+### Features:
 - oauth2
 - exif metadata: dateTime, GPS coordinates
+- download all albums
+- download a particular album
 
+### Static files
+- tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.0.0/build.zip)
 
-Run:
+### Run:
 ```bash
 go run ./
 ```
