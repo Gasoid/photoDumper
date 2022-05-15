@@ -3,4 +3,4 @@
 
 package main
 
-//go:generate tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.0.0/build.zip)
+//go:generate bash -c "tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.0.0/build.zip)"
