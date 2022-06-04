@@ -1,7 +1,6 @@
 package vk
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -13,25 +12,27 @@ import (
 	"strings"
 	"time"
 
-	"io/ioutil"
-
-	"github.com/Gasoid/go-dms/dms"
 	"github.com/SevereCloud/vksdk/v2/api"
 
-	exif "github.com/dsoprea/go-exif/v2"
-	exifcommon "github.com/dsoprea/go-exif/v2/common"
-	jpegstructure "github.com/dsoprea/go-jpeg-image-structure"
+	exif "github.com/Gasoid/simpleGoExif"
 )
 
 const (
 	maxCount        = 1000
 	concurrentFiles = 5
+	VK              = "vk"
 )
 
 var (
 	fileChannel chan DownloadFile
 )
 
+// `Vk` is a struct that contains a string, a pointer to a `PhotosGetAlbumsResponse` struct, an int,
+// and a pointer to a `VK` struct.
+// @property {string} token - VK API token
+// @property Albums - a list of all albums in the user's account.
+// @property {int} CurAlbum - the index of the current album in the Albums array
+// @property vkAPI - the main API object, which is used to make requests to the VK API.
 type Vk struct {
 	token    string
 	Albums   *api.PhotosGetAlbumsResponse
@@ -39,6 +40,8 @@ type Vk struct {
 	vkAPI    *api.VK
 }
 
+// DownloadFile is a struct that contains a directory, a URL, a creation time, an album name, and a
+// longitude and latitude.
 type DownloadFile struct {
 	dir       string
 	url       string
@@ -48,6 +51,7 @@ type DownloadFile struct {
 	latitude float64
 }
 
+// It takes a URL, parses it, and returns the base name of the path
 func (f *DownloadFile) filePath() (string, error) {
 	name, err := FileName(f.url)
 	if err != nil {
@@ -57,110 +61,31 @@ func (f *DownloadFile) filePath() (string, error) {
 	return filepath.Join(f.dir, name), nil
 }
 
-// EXIF HELL
+// It's setting EXIF data for the downloaded file.
 func (f *DownloadFile) setExifInfo() {
 	filepath, err := f.filePath()
 	if err != nil {
 		log.Println("filePath()", err)
 		return
 	}
-	jmp := jpegstructure.NewJpegMediaParser()
-	intfc, err := jmp.ParseFile(filepath)
+	image, err := exif.Open(filepath)
 	if err != nil {
-		log.Println("ParseFile(filepath)", err)
-		return
+		log.Println("exif.Open", err)
 	}
-	sl := intfc.(*jpegstructure.SegmentList)
-	rootIb, err := sl.ConstructExifBuilder()
-	if err != nil {
-		im := exif.NewIfdMappingWithStandard()
-		ti := exif.NewTagIndex()
-		err := exif.LoadStandardTags(ti)
-		if err != nil {
-			log.Println("ConstructExifBuilder()", err)
-			return
-		}
-
-		rootIb = exif.NewIfdBuilder(im, ti, exifcommon.IfdPathStandard, exifcommon.EncodeDefaultByteOrder)
-	}
-
-	ifd0Ib, err := exif.GetOrCreateIbFromRootIb(rootIb, "IFD0")
-	if err != nil {
-		log.Println("GetOrCreateIbFromRootIb(rootIb, ifd0Path)", err)
-		return
-	}
-
+	defer image.Close()
 	// Description
 	description := fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName)
-	err = ifd0Ib.SetStandardWithName("ImageDescription", description)
-	if err != nil {
-		log.Println("SetStandardWithName(ImageDescription)", err)
-		return
-	}
-
-	dateTime := exif.ExifFullTimestampString(f.created)
-	err = ifd0Ib.SetStandardWithName("DateTime", dateTime)
-	if err != nil {
-		log.Println("SetStandardWithName(DateTime)", err)
-		return
-	}
-
-	if f.latitude != 0 && f.longitude != 0 {
-		//log.Println("There are GPS coordinates:", f.latitude, f.longitude, filepath)
-
-		childIb, err := exif.GetOrCreateIbFromRootIb(rootIb, "IFD/GPSInfo")
-		if err != nil {
-			log.Println("GetOrCreateIbFromRootIb(rootIbf.latitude, GPSInfo)", err)
-			return
-		}
-		lat, lon, err := dms.NewDMS(f.latitude, f.longitude)
-		if err != nil {
-			log.Println("dms.NewDMS(f.latitude, f.longitude)", err)
-			return
-		}
-		updatedGiLat := exif.GpsDegrees{
-			Degrees: float64(lat.Degrees),
-			Minutes: float64(lat.Minutes),
-			Seconds: lat.Seconds,
-		}
-
-		err = childIb.SetStandardWithName("GPSLatitude", updatedGiLat.Raw())
-		if err != nil {
-			log.Println("SetStandardWithName(GPS)", err)
-			return
-		}
-		updatedGiLong := exif.GpsDegrees{
-			Degrees: float64(lon.Degrees),
-			Minutes: float64(lon.Minutes),
-			Seconds: lon.Seconds,
-		}
-
-		err = childIb.SetStandardWithName("GPSLongitude", updatedGiLong.Raw())
-		if err != nil {
-			log.Println("SetStandardWithName(GPS)", err)
-			return
-		}
-	}
-
-	err = sl.SetExif(rootIb)
-	if err != nil {
-		log.Println("SetExif()", err)
-		return
-	}
-	b := bytes.NewBufferString("")
-	err = sl.Write(b)
-	if err != nil {
-		log.Println("Write(b)", err)
-		return
-	}
-	ioutil.WriteFile(filepath, b.Bytes(), 0666)
+	image.SetDescription(description)
+	image.SetTime(f.created)
+	image.SetGPS(f.latitude, f.longitude)
 }
 
 type Albums interface {
 	Add(name, cover string)
 }
 
-func New(creds string) *Vk {
+// It creates a new Vk object, which is a wrapper around the vkAPI object
+func New(creds string) interface{} {
 	if fileChannel == nil {
 		fileChannel = make(chan DownloadFile, concurrentFiles)
 		go downloadFile()
@@ -168,6 +93,7 @@ func New(creds string) *Vk {
 	return &Vk{token: creds, vkAPI: api.NewVK(creds)}
 }
 
+// Getting albums from vk api
 func (v *Vk) GetAlbums() ([]map[string]string, error) {
 	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1})
 	if err != nil {
@@ -191,6 +117,7 @@ func (v *Vk) GetAlbums() ([]map[string]string, error) {
 	return albums, nil
 }
 
+// Getting photos from the album.
 func (v *Vk) GetAlbumPhotos(albumId string) ([]map[string]string, error) {
 	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumId, "count": maxCount, "photo_sizes": 1})
 	if err != nil {
@@ -204,6 +131,7 @@ func (v *Vk) GetAlbumPhotos(albumId string) ([]map[string]string, error) {
 	return photos, nil
 }
 
+// Downloading photos from a VK album.
 func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	params := api.Params{"album_ids": albumID}
 	if strings.Contains(albumID, "-") {
@@ -261,6 +189,7 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	return nil
 }
 
+// Downloading all albums from the user's account.
 func (v *Vk) DownloadAllAlbums(dir string) error {
 	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1, "need_system": 1})
 	if err != nil {
@@ -275,6 +204,7 @@ func (v *Vk) DownloadAllAlbums(dir string) error {
 	return nil
 }
 
+// It takes a URL, parses it, and returns the base name of the path
 func FileName(s string) (string, error) {
 	u, err := url.Parse(s)
 	if err != nil {
@@ -283,6 +213,8 @@ func FileName(s string) (string, error) {
 	return filepath.Base(u.Path), nil
 }
 
+// It downloads the file from the url, creates a file with the name of the file, and writes the body of
+// the response to the file
 func downloadFile() {
 	for file := range fileChannel {
 		f := file

@@ -7,6 +7,8 @@ import (
 	"net/http"
 
 	_ "github.com/Gasoid/photoDumper/docs"
+	"github.com/Gasoid/photoDumper/sources"
+	"github.com/Gasoid/photoDumper/sources/vk"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
@@ -33,6 +35,7 @@ var staticAssets embed.FS
 // @in query
 // @name api_key
 func main() {
+	sources.AddSource(vk.VK, vk.New)
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 	assets, err := fs.Sub(staticAssets, "build")

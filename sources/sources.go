@@ -5,20 +5,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-
-	"github.com/Gasoid/photoDumper/sources/vk"
-)
-
-const (
-	//Instagram string = "instagram"
-	VK string = "vk"
 )
 
 var (
-	sources = map[string]bool{
-		//Instagram: true,
-		VK: true,
-	}
+	RegisteredSources = map[string]func(string) Source{}
 	ErrSourceNotFound = errors.New("there is no such a source")
 )
 
@@ -39,6 +29,7 @@ func (s *Social) GetAlbums() ([]map[string]string, error) {
 	return s.source.GetAlbums()
 }
 
+// It's a method of Social struct. It's checking if the path is absolute or relative.
 func (s *Social) dirPath(dir string) (string, error) {
 	if dir[:1] == "~" {
 		home, err := os.UserHomeDir()
@@ -51,6 +42,7 @@ func (s *Social) dirPath(dir string) (string, error) {
 	return dir, nil
 }
 
+// Creating a directory if it doesn't exist.
 func (s *Social) prepareDir(dir string) (string, error) {
 	dir, err := s.dirPath(dir)
 	if err != nil {
@@ -98,17 +90,25 @@ type Options struct {
 
 // New creates a new instance of Social, you have to provide proper options
 func New(sourceName, creds string) (*Social, error) {
-	if _, ok := sources[sourceName]; !ok {
-		return nil, ErrSourceNotFound
-	}
 	s := &Social{name: sourceName, creds: creds}
-	switch sourceName {
-	case "vk":
-		s.source = vk.New(creds)
+	if sourceNew, ok := RegisteredSources[sourceName]; ok {
+		s.source = sourceNew(creds)
+	} else {
+		return nil, ErrSourceNotFound
 	}
 	return s, nil
 }
 
 func Sources() []string {
-	return []string{VK}
+	listSources := make([]string, len(RegisteredSources))
+	var i int
+	for key := range RegisteredSources {
+		listSources[i] = key
+		i++
+	}
+	return listSources
+}
+
+func AddSource(sourceName string, newFunc interface{}) {
+	RegisteredSources[sourceName] = newFunc.(func(string) Source)
 }

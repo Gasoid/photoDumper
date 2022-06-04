@@ -3,10 +3,8 @@ module github.com/Gasoid/photoDumper
 go 1.18
 
 require (
-	github.com/Gasoid/go-dms v0.0.0-20220509202354-6494c3d2c275
+	github.com/Gasoid/simpleGoExif v0.0.0-20220604194453-0d9eceebe743
 	github.com/SevereCloud/vksdk/v2 v2.14.0
-	github.com/dsoprea/go-exif/v2 v2.0.0-20210625224831-a6301f85c82b
-	github.com/dsoprea/go-jpeg-image-structure v0.0.0-20210512043942-b434301c6836
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
@@ -15,10 +13,13 @@ require (
 )
 
 require (
+	github.com/Gasoid/go-dms v0.0.0-20220510203757-73e3ab8a368b // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
 	github.com/PuerkitoBio/purell v1.1.1 // indirect
 	github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578 // indirect
+	github.com/dsoprea/go-exif/v2 v2.0.0-20210625224831-a6301f85c82b // indirect
 	github.com/dsoprea/go-iptc v0.0.0-20200609062250-162ae6b44feb // indirect
+	github.com/dsoprea/go-jpeg-image-structure v0.0.0-20210512043942-b434301c6836 // indirect
 	github.com/dsoprea/go-logging v0.0.0-20200517223158-a10564966e9d // indirect
 	github.com/dsoprea/go-photoshop-info-format v0.0.0-20200609050348-3db9b63b202c // indirect
 	github.com/dsoprea/go-utility v0.0.0-20200711062821-fab8125e9bdf // indirect

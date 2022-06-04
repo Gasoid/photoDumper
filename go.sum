@@ -1,6 +1,8 @@
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
-github.com/Gasoid/go-dms v0.0.0-20220509202354-6494c3d2c275 h1:tFqVumPGWgfwpRHvILyVsqtaEnFiShN5aqnfiUaVNjA=
-github.com/Gasoid/go-dms v0.0.0-20220509202354-6494c3d2c275/go.mod h1:y5P1dJYv7+g/pIPC07d0bcBfTtKXSLBlj47htD3k91E=
+github.com/Gasoid/go-dms v0.0.0-20220510203757-73e3ab8a368b h1:31k/3f2u+ghWYmxkPMpIS8Sj+nvi/Y4Jb+tpGo8PN50=
+github.com/Gasoid/go-dms v0.0.0-20220510203757-73e3ab8a368b/go.mod h1:y5P1dJYv7+g/pIPC07d0bcBfTtKXSLBlj47htD3k91E=
+github.com/Gasoid/simpleGoExif v0.0.0-20220604194453-0d9eceebe743 h1:bNKVaV+IKUpy5poxwZHvkgVAXOqShL7fyhIvjGWnrWI=
+github.com/Gasoid/simpleGoExif v0.0.0-20220604194453-0d9eceebe743/go.mod h1:CJITO/CP/8J8qjITouqPUwVmiEU+veehysmf/Nba+oE=
 github.com/KyleBanks/depth v1.2.1 h1:5h8fQADFrWtarTdtDudMmGsC7GPbOAu6RVB3ffsVFHc=
 github.com/KyleBanks/depth v1.2.1/go.mod h1:jzSb9d0L43HxTQfT+oSA1EEp2q+ne2uh6XgeJcm8brE=
 github.com/PuerkitoBio/purell v1.1.1 h1:WEQqlqaGbrPkxLJWfBwQmfEAE1Z7ONdDLqrN38tNFfI=
@@ -129,8 +131,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
 github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
-github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/stretchr/testify v1.7.1 h1:5TQK59W5E3v0r2duFAb7P95B6hEeOyEnHRa8MjYSMTY=
 github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2 h1:+iNTcqQJy0OZ5jk6a5NLib47eqXK8uYcPX+O4+cBpEM=
 github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2/go.mod h1:lKJPbtWzJ9JhsTN1k1gZgleJWY/cqq0psdoMmaThG3w=
 github.com/swaggo/gin-swagger v1.4.2 h1:qDs1YrBOTnurDG/JVMc8678KhoS1B1okQGPtIqVz4YU=
