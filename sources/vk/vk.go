@@ -219,7 +219,10 @@ func (v *Vk) DownloadAllAlbums(dir string) error {
 	}
 	for _, album := range resp.Items {
 		go func(albumID string) {
-			v.DownloadAlbum(albumID, dir)
+			err := v.DownloadAlbum(albumID, dir)
+			if err != nil {
+				log.Println(makeError(err, "DownloadAllAlbums failed"))
+			}
 		}(fmt.Sprint(album.ID))
 	}
 
