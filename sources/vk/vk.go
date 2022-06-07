@@ -88,9 +88,18 @@ func (f *DownloadFile) setExifInfo() {
 	defer image.Close()
 	// Description
 	description := fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName)
-	image.SetDescription(description)
-	image.SetTime(f.created)
-	image.SetGPS(f.latitude, f.longitude)
+	err = image.SetDescription(description)
+	if err != nil {
+		log.Println("image.SetDescription", err)
+	}
+	err = image.SetTime(f.created)
+	if err != nil {
+		log.Println("image.SetTime", err)
+	}
+	err = image.SetGPS(f.latitude, f.longitude)
+	if err != nil {
+		log.Println("image.SetGPS", err)
+	}
 }
 
 type Albums interface {
@@ -232,7 +241,6 @@ func (v *Vk) IsAuthError(err error) bool {
 }
 
 func makeError(err error, text string) error {
-	log.Println(err)
 	if errors.Is(err, api.ErrSignature) || errors.Is(err, api.ErrAccess) || errors.Is(err, api.ErrAuth) {
 		return &AccessError{text: text, err: err}
 	}

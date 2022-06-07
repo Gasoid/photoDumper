@@ -82,10 +82,10 @@ func (s *Social) DownloadAlbum(albumID, dir string) error {
 	return s.source.DownloadAlbum(albumID, dir)
 }
 
-type Photo struct {
-	id  string
-	url string
-}
+// type Photo struct {
+// 	id  string
+// 	url string
+// }
 
 func (s *Social) GetAlbumPhotos(albumID string) ([]map[string]string, error) {
 	return s.source.GetAlbumPhotos(albumID)
