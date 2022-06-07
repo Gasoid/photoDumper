@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - run: tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.0.0/build.zip)
+      - run: mkdir build
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
