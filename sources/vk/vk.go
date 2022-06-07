@@ -27,6 +27,19 @@ var (
 	fileChannel chan DownloadFile
 )
 
+type AccessError struct {
+	text string
+	err  error
+}
+
+func (e *AccessError) Error() string {
+	return fmt.Sprintf("Auth error %s", e.text)
+}
+
+func (e *AccessError) Unwrap() error {
+	return e.err
+}
+
 // `Vk` is a struct that contains a string, a pointer to a `PhotosGetAlbumsResponse` struct, an int,
 // and a pointer to a `VK` struct.
 // @property {string} token - VK API token
@@ -97,7 +110,7 @@ func New(creds string) interface{} {
 func (v *Vk) GetAlbums() ([]map[string]string, error) {
 	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1})
 	if err != nil {
-		return nil, fmt.Errorf("GetAlbums error: %w", err)
+		return nil, makeError(err, "GetAlbums failed")
 	}
 	albums := make([]map[string]string, resp.Count)
 	for i, album := range resp.Items {
@@ -121,7 +134,7 @@ func (v *Vk) GetAlbums() ([]map[string]string, error) {
 func (v *Vk) GetAlbumPhotos(albumId string) ([]map[string]string, error) {
 	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumId, "count": maxCount, "photo_sizes": 1})
 	if err != nil {
-		return nil, fmt.Errorf("GetAlbumPhotos error: %w", err)
+		return nil, makeError(err, "GetAlbumPhotos failed")
 	}
 	photos := make([]map[string]string, resp.Count)
 	for i, photo := range resp.Items {
@@ -139,13 +152,13 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	}
 	albumResp, err := v.vkAPI.PhotosGetAlbums(params)
 	if err != nil {
-		return fmt.Errorf("DownloadAlbum: %w", err)
+		return makeError(err, "DownloadAlbum failed")
 	}
 	// log.Println(albumID)
 	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1})
 	if err != nil {
 		log.Println("DownloadAlbum:", err)
-		return fmt.Errorf("DownloadAlbum: %w", err)
+		return makeError(err, "DownloadAlbum failed")
 	}
 	if albumResp.Count < 1 {
 		return errors.New("no such an album")
@@ -193,7 +206,7 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 func (v *Vk) DownloadAllAlbums(dir string) error {
 	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1, "need_system": 1})
 	if err != nil {
-		return fmt.Errorf("GetAlbums error: %w", err)
+		return makeError(err, "DownloadAllAlbums failed")
 	}
 	for _, album := range resp.Items {
 		go func(albumID string) {
@@ -211,6 +224,19 @@ func FileName(s string) (string, error) {
 		return "", err
 	}
 	return filepath.Base(u.Path), nil
+}
+
+func (v *Vk) IsAuthError(err error) bool {
+	var e *AccessError
+	return errors.As(err, &e)
+}
+
+func makeError(err error, text string) error {
+	log.Println(err)
+	if errors.Is(err, api.ErrSignature) || errors.Is(err, api.ErrAccess) || errors.Is(err, api.ErrAuth) {
+		return &AccessError{text: text, err: err}
+	}
+	return fmt.Errorf("%s: %w", text, err)
 }
 
 // It downloads the file from the url, creates a file with the name of the file, and writes the body of

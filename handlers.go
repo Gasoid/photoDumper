@@ -36,7 +36,11 @@ func getAlbums(c *gin.Context) {
 	}
 	albums, err := source.GetAlbums()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if source.IsAuthError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"albums": albums})
@@ -61,7 +65,11 @@ func getAlbumPhotos(c *gin.Context) {
 	}
 	photos, err := source.GetAlbumPhotos(c.Param("albumID"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if source.IsAuthError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"photos": photos})
@@ -82,7 +90,11 @@ func downloadAlbum(c *gin.Context) {
 	api_key := c.Query("api_key")
 	source, err := sources.New(c.Param("sourceName"), api_key)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if source.IsAuthError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	go source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
@@ -108,7 +120,11 @@ func downloadAllAlbums(c *gin.Context) {
 	}
 	err = source.DownloadAllAlbums(c.Query("dir"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		if source.IsAuthError(err) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		} else {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{})

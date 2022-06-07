@@ -17,6 +17,7 @@ type Source interface {
 	GetAlbumPhotos(albumId string) ([]map[string]string, error)
 	DownloadAllAlbums(dir string) error
 	DownloadAlbum(albumdID, dir string) error
+	IsAuthError(err error) bool
 }
 
 type Social struct {
@@ -25,8 +26,14 @@ type Social struct {
 	source Source
 }
 
+// GetAlbums returns albums
 func (s *Social) GetAlbums() ([]map[string]string, error) {
 	return s.source.GetAlbums()
+}
+
+// GetAlbums returns albums
+func (s *Social) IsAuthError(err error) bool {
+	return s.source.IsAuthError(err)
 }
 
 // It's a method of Social struct. It's checking if the path is absolute or relative.
@@ -109,6 +116,9 @@ func Sources() []string {
 	return listSources
 }
 
-func AddSource(sourceName string, newFunc interface{}) {
-	RegisteredSources[sourceName] = newFunc.(func(string) Source)
+func AddSource(sourceName string, newFunc func(string) interface{}) {
+	RegisteredSources[sourceName] = func(creds string) Source {
+		result := newFunc(creds)
+		return result.(Source)
+	}
 }
