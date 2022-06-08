@@ -15,7 +15,7 @@ Tool downloads photos from VK albums (except from system albums)
 - download a particular album
 
 ### Static files
-- `tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.0.0/build.zip)`
+- `tar xvfp <(curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.1.0/build.zip)`
 - or `go generate staticAssets.go`
 
 ### Run:
