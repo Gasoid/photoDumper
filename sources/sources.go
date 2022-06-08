@@ -63,23 +63,25 @@ func (s *Social) prepareDir(dir string) (string, error) {
 	return dir, err
 }
 
-func (s *Social) DownloadAllAlbums(dir string) error {
+func (s *Social) DownloadAllAlbums(dir string) (string, error) {
 	dir, err := s.prepareDir(dir)
 	if err != nil {
 		log.Println("DownloadAllAlbums(dir string)", err)
-		return err
+		return "", err
 	}
-	return s.source.DownloadAllAlbums(dir)
+	s.source.DownloadAllAlbums(dir)
+	return dir, nil
 }
 
 // DownloadAlbum runs copying process to a particular directory
-func (s *Social) DownloadAlbum(albumID, dir string) error {
+func (s *Social) DownloadAlbum(albumID, dir string) (string, error) {
 	dir, err := s.prepareDir(dir)
 	if err != nil {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
-		return err
+		return "", err
 	}
-	return s.source.DownloadAlbum(albumID, dir)
+	go s.source.DownloadAlbum(albumID, dir)
+	return dir, nil
 }
 
 // type Photo struct {
