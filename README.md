@@ -1,7 +1,7 @@
 # photoDumper
-Application downloads album photos from VK
+Tool downloads photos from VK albums (except from system albums)
 
-![photo_2022-05-13_21-30-47](https://user-images.githubusercontent.com/833157/168378024-1f67e441-507c-4a43-8613-17e9a145d252.jpg)
+![screen](screen.webp)
 
 
 ## Download page
@@ -40,6 +40,7 @@ swag fmt
 
 
 ### Tags
+- Download all photos from vk account
 - скачать все альбомы с вконтакте без регистрации и смс
 - скачать фото с вк бесплатно
 - приложение для скачивания всех фото из вк

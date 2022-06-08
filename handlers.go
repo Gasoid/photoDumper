@@ -97,8 +97,12 @@ func downloadAlbum(c *gin.Context) {
 		}
 		return
 	}
-	go source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
-	c.JSON(http.StatusOK, gin.H{})
+	dir, err := source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"error": "", "dir": dir})
 }
 
 // downloadAllAlbums godoc
@@ -118,7 +122,7 @@ func downloadAllAlbums(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	err = source.DownloadAllAlbums(c.Query("dir"))
+	dir, err := source.DownloadAllAlbums(c.Query("dir"))
 	if err != nil {
 		if source.IsAuthError(err) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
@@ -127,5 +131,5 @@ func downloadAllAlbums(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{})
+	c.JSON(http.StatusOK, gin.H{"error": "", "dir": dir})
 }
