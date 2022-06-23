@@ -42,7 +42,6 @@ type Vk struct {
 // DownloadFile is a struct that contains a directory, a URL, a creation time, an album name, and a
 // longitude and latitude.
 type DownloadFile struct {
-	dir       string
 	url       string
 	created   time.Time
 	albumName string
