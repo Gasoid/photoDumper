@@ -23,50 +23,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/album-photos/{sourceName}/{albumID}/": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "get photos of album",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "summary": "Album Photos",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "source name",
-                        "name": "sourceName",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "album ID",
-                        "name": "albumID",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "getAlbumPhotos",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "type": "string"
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/albums/{sourceName}/": {
             "get": {
                 "security": [
@@ -104,7 +60,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/download-album/{sourceName}/{albumID}/": {
+        "/download-album/{albumID}/{sourceName}/": {
             "get": {
                 "security": [
                     {

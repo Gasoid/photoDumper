@@ -1,109 +1,134 @@
 package sources
 
 import (
-	"errors"
+	"fmt"
 	"log"
-	"os"
-	"path/filepath"
+	"strings"
 )
 
 var (
 	RegisteredSources = map[string]func(string) Source{}
-	ErrSourceNotFound = errors.New("there is no such a source")
+	photoCh           chan interface{}
+	concurrentFiles   = 5
 )
+
+type SourceError struct {
+	text string
+	err  error
+}
+
+func (e *SourceError) Error() string {
+	return fmt.Sprintf("Source error: %s", e.text)
+}
+
+func (e *SourceError) Unwrap() error {
+	return e.err
+}
+
+type AuthError struct {
+	text string
+	err  error
+}
+
+func (e *AuthError) Error() string {
+	return fmt.Sprintf("Auth error: %s", e.text)
+}
+
+func (e *AuthError) Unwrap() error {
+	return e.err
+}
 
 type Source interface {
 	GetAlbums() ([]map[string]string, error)
-	GetAlbumPhotos(albumId string) ([]map[string]string, error)
-	DownloadAllAlbums(dir string) error
-	DownloadAlbum(albumdID, dir string) error
-	IsAuthError(err error) bool
+	AlbumPhotos(albumdID string, photo chan interface{}) error
+}
+
+type Photo interface {
+	GetUrl() string
+	GetFilename() string
+	GetAlbumName() string
+	GetExifInfo() (map[string]interface{}, error)
+}
+
+type Storage interface {
+	Prepare() (string, error)
+	SavePhotos(photo chan interface{})
 }
 
 type Social struct {
-	name   string
-	creds  string
-	source Source
+	name    string
+	creds   string
+	source  Source
+	storage Storage
 }
 
 // GetAlbums returns albums
 func (s *Social) GetAlbums() ([]map[string]string, error) {
-	return s.source.GetAlbums()
-}
-
-// GetAlbums returns albums
-func (s *Social) IsAuthError(err error) bool {
-	return s.source.IsAuthError(err)
-}
-
-// It's a method of Social struct. It's checking if the path is absolute or relative.
-func (s *Social) dirPath(dir string) (string, error) {
-	if dir[:1] == "~" {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			log.Println("filePath()", err)
-			return "", err
+	albums, err := s.source.GetAlbums()
+	if err != nil {
+		if strings.Contains(err.Error(), "Auth error") {
+			return nil, &AuthError{"Albums are inaccessible", err}
 		}
-		dir = filepath.Join(home, filepath.FromSlash(dir[1:]))
+		return nil, &SourceError{"Albums are inaccessible", err}
 	}
-	return dir, nil
+	return albums, nil
 }
 
-// Creating a directory if it doesn't exist.
-func (s *Social) prepareDir(dir string) (string, error) {
-	dir, err := s.dirPath(dir)
+func (s *Social) DownloadAllAlbums() (string, error) {
+	dir, err := s.storage.Prepare()
 	if err != nil {
 		log.Println("DownloadAllAlbums(dir string)", err)
-		return "", err
+		return "", &SourceError{text: "dir can't be created"}
 	}
-	err = os.MkdirAll(dir, 0750)
-	if err != nil {
-		log.Println("DownloadAllAlbums(dir string)", err)
-	}
-	return dir, err
-}
 
-func (s *Social) DownloadAllAlbums(dir string) (string, error) {
-	dir, err := s.prepareDir(dir)
+	albums, err := s.source.GetAlbums()
 	if err != nil {
-		log.Println("DownloadAllAlbums(dir string)", err)
-		return "", err
+		if strings.Contains(err.Error(), "Auth error") {
+			return "", &AuthError{"Albums are inaccessible", err}
+		}
+		return "", &SourceError{"Albums are inaccessible", err}
 	}
-	s.source.DownloadAllAlbums(dir)
+	for _, album := range albums {
+		go func(albumID string) {
+			_, err := s.DownloadAlbum(albumID)
+			if err != nil {
+				log.Println(err, "DownloadAllAlbums failed")
+			}
+		}(album["id"])
+	}
+
 	return dir, nil
 }
 
 // DownloadAlbum runs copying process to a particular directory
-func (s *Social) DownloadAlbum(albumID, dir string) (string, error) {
-	dir, err := s.prepareDir(dir)
+func (s *Social) DownloadAlbum(albumID string) (string, error) {
+	dir, err := s.storage.Prepare()
 	if err != nil {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
-		return "", err
+		if strings.Contains(err.Error(), "Auth error") {
+			return "", &AuthError{"Album is inaccessible", err}
+		}
+		return "", &SourceError{"Album is inaccessible", err}
 	}
-	go s.source.DownloadAlbum(albumID, dir)
+	s.source.AlbumPhotos(albumID, photoCh)
 	return dir, nil
 }
 
-// type Photo struct {
-// 	id  string
-// 	url string
-// }
-
-func (s *Social) GetAlbumPhotos(albumID string) ([]map[string]string, error) {
-	return s.source.GetAlbumPhotos(albumID)
-}
-
-type Options struct {
-	Source string
-}
-
 // New creates a new instance of Social, you have to provide proper options
-func New(sourceName, creds string) (*Social, error) {
-	s := &Social{name: sourceName, creds: creds}
+func New(sourceName, creds string, storage interface{}) (*Social, error) {
+	s := &Social{
+		name:    sourceName,
+		creds:   creds,
+		storage: storage.(Storage),
+	}
 	if sourceNew, ok := RegisteredSources[sourceName]; ok {
 		s.source = sourceNew(creds)
 	} else {
-		return nil, ErrSourceNotFound
+		return nil, &SourceError{text: "there is no such a source"}
+	}
+	if photoCh == nil {
+		photoCh = make(chan interface{}, concurrentFiles)
+		go s.storage.SavePhotos(photoCh)
 	}
 	return s, nil
 }

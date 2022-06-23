@@ -3,28 +3,18 @@ package vk
 import (
 	"errors"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/SevereCloud/vksdk/v2/api"
-
-	exif "github.com/Gasoid/simpleGoExif"
 )
 
 const (
-	maxCount        = 1000
-	concurrentFiles = 5
-	VK              = "vk"
-)
-
-var (
-	fileChannel chan DownloadFile
+	maxCount = 1000
+	VK       = "vk"
 )
 
 type AccessError struct {
@@ -42,10 +32,6 @@ func (e *AccessError) Unwrap() error {
 
 // `Vk` is a struct that contains a string, a pointer to a `PhotosGetAlbumsResponse` struct, an int,
 // and a pointer to a `VK` struct.
-// @property {string} token - VK API token
-// @property Albums - a list of all albums in the user's account.
-// @property {int} CurAlbum - the index of the current album in the Albums array
-// @property vkAPI - the main API object, which is used to make requests to the VK API.
 type Vk struct {
 	token    string
 	Albums   *api.PhotosGetAlbumsResponse
@@ -64,54 +50,35 @@ type DownloadFile struct {
 	latitude float64
 }
 
-// It takes a URL, parses it, and returns the base name of the path
-func (f *DownloadFile) filePath() (string, error) {
-	name, err := FileName(f.url)
+func (f *DownloadFile) GetUrl() string {
+	return f.url
+}
+
+func (f *DownloadFile) GetAlbumName() string {
+	return f.albumName
+}
+
+func (f *DownloadFile) GetFilename() string {
+	u, err := url.Parse(f.url)
 	if err != nil {
-		log.Println("filePath()", err)
-		return "", err
+		return ""
 	}
-	return filepath.Join(f.dir, name), nil
+	return filepath.Base(u.Path)
 }
 
 // It's setting EXIF data for the downloaded file.
-func (f *DownloadFile) setExifInfo() {
-	filepath, err := f.filePath()
-	if err != nil {
-		log.Println("filePath()", err)
-		return
+func (f *DownloadFile) GetExifInfo() (map[string]interface{}, error) {
+	exifInfo := map[string]interface{}{
+		"description": fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName),
+		"created":     f.created,
+		"gps":         []float64{f.latitude, f.longitude},
 	}
-	image, err := exif.Open(filepath)
-	if err != nil {
-		log.Println("exif.Open", err)
-	}
-	defer image.Close()
-	// Description
-	description := fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName)
-	err = image.SetDescription(description)
-	if err != nil {
-		log.Println("image.SetDescription", err)
-	}
-	err = image.SetTime(f.created)
-	if err != nil {
-		log.Println("image.SetTime", err)
-	}
-	err = image.SetGPS(f.latitude, f.longitude)
-	if err != nil {
-		log.Println("image.SetGPS", err)
-	}
-}
 
-type Albums interface {
-	Add(name, cover string)
+	return exifInfo, nil
 }
 
 // It creates a new Vk object, which is a wrapper around the vkAPI object
 func New(creds string) interface{} {
-	if fileChannel == nil {
-		fileChannel = make(chan DownloadFile, concurrentFiles)
-		go downloadFile()
-	}
 	return &Vk{token: creds, vkAPI: api.NewVK(creds)}
 }
 
@@ -139,22 +106,8 @@ func (v *Vk) GetAlbums() ([]map[string]string, error) {
 	return albums, nil
 }
 
-// Getting photos from the album.
-func (v *Vk) GetAlbumPhotos(albumId string) ([]map[string]string, error) {
-	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumId, "count": maxCount, "photo_sizes": 1})
-	if err != nil {
-		return nil, makeError(err, "GetAlbumPhotos failed")
-	}
-	photos := make([]map[string]string, resp.Count)
-	for i, photo := range resp.Items {
-		photos[i] = map[string]string{"thumb": photo.Sizes[0].URL, "title": photo.Title, "id": fmt.Sprint(photo.ID)}
-	}
-
-	return photos, nil
-}
-
 // Downloading photos from a VK album.
-func (v *Vk) DownloadAlbum(albumID, dir string) error {
+func (v *Vk) AlbumPhotos(albumID string, photoCh chan interface{}) error {
 	params := api.Params{"album_ids": albumID}
 	if strings.Contains(albumID, "-") {
 		params["need_system"] = 1
@@ -175,15 +128,6 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	if albumResp.Items[0].Title == "" {
 		return errors.New("album title is empty")
 	}
-	albumDir := filepath.Join(dir, albumResp.Items[0].Title)
-	_, err = os.Stat(albumDir)
-	if err != nil {
-		err = os.Mkdir(albumDir, 0750)
-		if err != nil {
-			log.Println("DownloadAlbum:", err)
-			return fmt.Errorf("DownloadAlbum: %w", err)
-		}
-	}
 
 	for _, photo := range resp.Items {
 		var url string
@@ -198,8 +142,7 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 		}
 
 		created := time.Unix(int64(photo.Date), 0)
-		fileChannel <- DownloadFile{
-			dir:       albumDir,
+		photoCh <- &DownloadFile{
 			url:       url,
 			created:   created,
 			albumName: albumResp.Items[0].Title,
@@ -211,83 +154,9 @@ func (v *Vk) DownloadAlbum(albumID, dir string) error {
 	return nil
 }
 
-// Downloading all albums from the user's account.
-func (v *Vk) DownloadAllAlbums(dir string) error {
-	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1, "need_system": 1})
-	if err != nil {
-		return makeError(err, "DownloadAllAlbums failed")
-	}
-	for _, album := range resp.Items {
-		go func(albumID string) {
-			err := v.DownloadAlbum(albumID, dir)
-			if err != nil {
-				log.Println(makeError(err, "DownloadAllAlbums failed"))
-			}
-		}(fmt.Sprint(album.ID))
-	}
-
-	return nil
-}
-
-// It takes a URL, parses it, and returns the base name of the path
-func FileName(s string) (string, error) {
-	u, err := url.Parse(s)
-	if err != nil {
-		return "", err
-	}
-	return filepath.Base(u.Path), nil
-}
-
-func (v *Vk) IsAuthError(err error) bool {
-	var e *AccessError
-	return errors.As(err, &e)
-}
-
 func makeError(err error, text string) error {
 	if errors.Is(err, api.ErrSignature) || errors.Is(err, api.ErrAccess) || errors.Is(err, api.ErrAuth) {
 		return &AccessError{text: text, err: err}
 	}
 	return fmt.Errorf("%s: %w", text, err)
-}
-
-// It downloads the file from the url, creates a file with the name of the file, and writes the body of
-// the response to the file
-func downloadFile() {
-	for file := range fileChannel {
-		f := file
-		go func() {
-			// Get the data
-			resp, err := http.Get(f.url)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			if resp.StatusCode != http.StatusOK {
-				log.Printf("%q is unavailable. code is 404", f.url)
-				return
-			}
-			defer resp.Body.Close()
-			filepath, err := f.filePath()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			// Create the file
-			out, err := os.Create(filepath)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			// Write the body to file
-			_, err = io.Copy(out, resp.Body)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			out.Close()
-			f.setExifInfo()
-		}()
-	}
-	log.Println("channel closed")
 }

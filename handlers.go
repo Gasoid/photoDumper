@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/Gasoid/photoDumper/sources"
@@ -29,14 +30,15 @@ func getSources(c *gin.Context) {
 // @Router       /albums/{sourceName}/ [get]
 func getAlbums(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key)
+	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	albums, err := source.GetAlbums()
 	if err != nil {
-		if source.IsAuthError(err) {
+		var e *sources.AuthError
+		if errors.As(err, &e) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -44,35 +46,6 @@ func getAlbums(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"albums": albums})
-}
-
-// getAlbumPhotos godoc
-// @Summary      Album Photos
-// @Description  get photos of album
-// @Produce      json
-// @Accept       json
-// @Param        sourceName  path     string  true  "source name"
-// @Param        albumID     path     string  true  "album ID"
-// @Success      200         {array}  string  "getAlbumPhotos"
-// @Router       /album-photos/{albumID}/{sourceName}/ [get]
-// @Security     ApiKeyAuth
-func getAlbumPhotos(c *gin.Context) {
-	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	photos, err := source.GetAlbumPhotos(c.Param("albumID"))
-	if err != nil {
-		if source.IsAuthError(err) {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		} else {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"photos": photos})
 }
 
 // downloadAlbum godoc
@@ -88,18 +61,19 @@ func getAlbumPhotos(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAlbum(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key)
+	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
 	if err != nil {
-		if source.IsAuthError(err) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	dir, err := source.DownloadAlbum(c.Param("albumID"))
+	if err != nil {
+		var e *sources.AuthError
+		if errors.As(err, &e) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		}
-		return
-	}
-	dir, err := source.DownloadAlbum(c.Param("albumID"), c.Query("dir"))
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{"error": err.Error()})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"error": "", "dir": dir})
@@ -117,14 +91,15 @@ func downloadAlbum(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAllAlbums(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key)
+	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	dir, err := source.DownloadAllAlbums(c.Query("dir"))
+	dir, err := source.DownloadAllAlbums()
 	if err != nil {
-		if source.IsAuthError(err) {
+		var e *sources.AuthError
+		if errors.As(err, &e) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		} else {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})

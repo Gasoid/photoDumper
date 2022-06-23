@@ -2,3 +2,5 @@ build
 Dockerfile
 screen.png
 out
+.vscode
+.DS_Store

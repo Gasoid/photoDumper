@@ -11,34 +11,6 @@ info:
   title: PhotoDumper
   version: "1.0"
 paths:
-  /album-photos/{sourceName}/{albumID}/:
-    get:
-      consumes:
-      - application/json
-      description: get photos of album
-      parameters:
-      - description: source name
-        in: path
-        name: sourceName
-        required: true
-        type: string
-      - description: album ID
-        in: path
-        name: albumID
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: getAlbumPhotos
-          schema:
-            items:
-              type: string
-            type: array
-      security:
-      - ApiKeyAuth: []
-      summary: Album Photos
   /albums/{sourceName}/:
     get:
       consumes:
@@ -62,7 +34,7 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Albums
-  /download-album/{sourceName}/{albumID}/:
+  /download-album/{albumID}/{sourceName}/:
     get:
       consumes:
       - application/json

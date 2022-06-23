@@ -56,7 +56,6 @@ func main() {
 		auth := api.Group("/", Auth())
 		{
 			auth.GET("/albums/:sourceName/", getAlbums)
-			auth.GET("/album-photos/:albumID/:sourceName/", getAlbumPhotos)
 			auth.GET("/download-all-albums/:sourceName/", downloadAllAlbums)
 			auth.GET("/download-album/:albumID/:sourceName/", downloadAlbum)
 		}
