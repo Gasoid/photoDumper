@@ -62,7 +62,7 @@ type Social struct {
 	storage Storage
 }
 
-// GetAlbums returns albums
+// Albums returns albums
 func (s *Social) Albums() ([]map[string]string, error) {
 	albums, err := s.source.AllAlbums()
 	if err != nil {
