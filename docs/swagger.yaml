@@ -6,10 +6,10 @@ info:
     url: https://github.com/Gasoid/
   description: app downloads photos from vk.
   license:
-    name: Apache 2.0
-    url: http://www.apache.org/licenses/LICENSE-2.0.html
+    name: MIT License
+    url: https://github.com/Gasoid/photoDumper/blob/main/LICENSE
   title: PhotoDumper
-  version: "1.0"
+  version: 1.1.2
 paths:
   /albums/{sourceName}/:
     get:
