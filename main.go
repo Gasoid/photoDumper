@@ -52,12 +52,12 @@ func main() {
 	router.StaticFS("/assets/", assetsFS)
 	api := router.Group("/api")
 	{
-		api.GET("/sources/", getSources)
+		api.GET("/sources/", sourcesHandler)
 		auth := api.Group("/", Auth())
 		{
-			auth.GET("/albums/:sourceName/", getAlbums)
-			auth.GET("/download-all-albums/:sourceName/", downloadAllAlbums)
-			auth.GET("/download-album/:albumID/:sourceName/", downloadAlbum)
+			auth.GET("/albums/:sourceName/", albumsHandler)
+			auth.GET("/download-all-albums/:sourceName/", downloadAllAlbumsHandler)
+			auth.GET("/download-album/:albumID/:sourceName/", downloadAlbumHandler)
 		}
 
 	}

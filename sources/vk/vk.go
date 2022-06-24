@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Gasoid/photoDumper/sources"
 	"github.com/SevereCloud/vksdk/v2/api"
 )
 
@@ -49,15 +50,15 @@ type DownloadFile struct {
 	latitude float64
 }
 
-func (f *DownloadFile) GetUrl() string {
+func (f *DownloadFile) Url() string {
 	return f.url
 }
 
-func (f *DownloadFile) GetAlbumName() string {
+func (f *DownloadFile) AlbumName() string {
 	return f.albumName
 }
 
-func (f *DownloadFile) GetFilename() string {
+func (f *DownloadFile) Filename() string {
 	u, err := url.Parse(f.url)
 	if err != nil {
 		return ""
@@ -66,7 +67,7 @@ func (f *DownloadFile) GetFilename() string {
 }
 
 // It's setting EXIF data for the downloaded file.
-func (f *DownloadFile) GetExifInfo() (map[string]interface{}, error) {
+func (f *DownloadFile) ExifInfo() (map[string]interface{}, error) {
 	exifInfo := map[string]interface{}{
 		"description": fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName),
 		"created":     f.created,
@@ -77,12 +78,12 @@ func (f *DownloadFile) GetExifInfo() (map[string]interface{}, error) {
 }
 
 // It creates a new Vk object, which is a wrapper around the vkAPI object
-func New(creds string) interface{} {
+func New(creds string) sources.Source {
 	return &Vk{token: creds, vkAPI: api.NewVK(creds)}
 }
 
 // Getting albums from vk api
-func (v *Vk) GetAlbums() ([]map[string]string, error) {
+func (v *Vk) AllAlbums() ([]map[string]string, error) {
 	resp, err := v.vkAPI.PhotosGetAlbums(api.Params{"need_covers": 1})
 	if err != nil {
 		return nil, makeError(err, "GetAlbums failed")
@@ -106,7 +107,7 @@ func (v *Vk) GetAlbums() ([]map[string]string, error) {
 }
 
 // Downloading photos from a VK album.
-func (v *Vk) AlbumPhotos(albumID string, photoCh chan interface{}) error {
+func (v *Vk) AlbumPhotos(albumID string, photoCh chan sources.Photo) error {
 	params := api.Params{"album_ids": albumID}
 	if strings.Contains(albumID, "-") {
 		params["need_system"] = 1

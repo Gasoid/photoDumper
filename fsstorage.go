@@ -9,15 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/Gasoid/photoDumper/sources"
 	exif "github.com/Gasoid/simpleGoExif"
 )
-
-type Photo interface {
-	GetUrl() string
-	GetFilename() string
-	GetAlbumName() string
-	GetExifInfo() (map[string]interface{}, error)
-}
 
 type SimpleStorage struct {
 	Dir string
@@ -53,7 +47,7 @@ func (s *SimpleStorage) Prepare() (string, error) {
 }
 
 // It takes a URL, parses it, and returns the base name of the path
-func (s *SimpleStorage) GetFilePath(dir, filename string) string {
+func (s *SimpleStorage) FilePath(dir, filename string) string {
 	return filepath.Join(dir, filename)
 }
 
@@ -74,27 +68,27 @@ func (s *SimpleStorage) createAlbumDir(albumName string) (string, error) {
 
 // It downloads the file from the url, creates a file with the name of the file, and writes the body of
 // the response to the file
-func (s *SimpleStorage) SavePhotos(photoCh chan interface{}) {
+func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
 	for file := range photoCh {
-		f := file.(Photo)
+		f := file
 		go func() {
 			// Get the data
-			resp, err := http.Get(f.GetUrl())
+			resp, err := http.Get(f.Url())
 			if err != nil {
 				log.Println(err)
 				return
 			}
 			if resp.StatusCode != http.StatusOK {
-				log.Printf("%q is unavailable. code is %d", f.GetUrl(), resp.StatusCode)
+				log.Printf("%q is unavailable. code is %d", f.Url(), resp.StatusCode)
 				return
 			}
 			defer resp.Body.Close()
-			dir, err := s.createAlbumDir(f.GetAlbumName())
+			dir, err := s.createAlbumDir(f.AlbumName())
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			filepath := s.GetFilePath(dir, f.GetFilename())
+			filepath := s.FilePath(dir, f.Filename())
 			// Create the file
 			out, err := os.Create(filepath)
 			if err != nil {
@@ -116,7 +110,7 @@ func (s *SimpleStorage) SavePhotos(photoCh chan interface{}) {
 }
 
 // It's setting EXIF data for the downloaded file.
-func (s *SimpleStorage) setExifInfo(filepath string, photo Photo) error {
+func (s *SimpleStorage) setExifInfo(filepath string, photo sources.Photo) error {
 	image, err := exif.Open(filepath)
 	if err != nil {
 		log.Println("exif.Open", err)
@@ -124,9 +118,9 @@ func (s *SimpleStorage) setExifInfo(filepath string, photo Photo) error {
 	}
 	defer image.Close()
 	// Description
-	exifInfo, err := photo.GetExifInfo()
+	exifInfo, err := photo.ExifInfo()
 	if err != nil {
-		log.Println("photo.GetExifInfo()", err)
+		log.Println("photo.ExifInfo()", err)
 		return err
 	}
 	if description, ok := exifInfo["description"].(string); ok {

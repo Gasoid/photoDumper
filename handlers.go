@@ -15,7 +15,7 @@ import (
 // @Accept       json
 // @Success      200  {array}  string  "getSources"
 // @Router       /sources/ [get]
-func getSources(c *gin.Context) {
+func sourcesHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"sources": sources.Sources()})
 }
 
@@ -28,14 +28,14 @@ func getSources(c *gin.Context) {
 // @Success      200         {array}  string  "albums"
 // @Security     ApiKeyAuth
 // @Router       /albums/{sourceName}/ [get]
-func getAlbums(c *gin.Context) {
+func albumsHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
 	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	albums, err := source.GetAlbums()
+	albums, err := source.Albums()
 	if err != nil {
 		var e *sources.AuthError
 		if errors.As(err, &e) {
@@ -59,7 +59,7 @@ func getAlbums(c *gin.Context) {
 // @Success      200         {array}  string
 // @Router       /download-album/{albumID}/{sourceName}/ [get]
 // @Security     ApiKeyAuth
-func downloadAlbum(c *gin.Context) {
+func downloadAlbumHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
 	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
 	if err != nil {
@@ -89,7 +89,7 @@ func downloadAlbum(c *gin.Context) {
 // @Success      200         {array}  string
 // @Router       /download-all-albums/{sourceName}/ [get]
 // @Security     ApiKeyAuth
-func downloadAllAlbums(c *gin.Context) {
+func downloadAllAlbumsHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
 	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
 	if err != nil {

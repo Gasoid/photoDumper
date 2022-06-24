@@ -8,7 +8,7 @@ import (
 
 var (
 	RegisteredSources = map[string]func(string) Source{}
-	photoCh           chan interface{}
+	photoCh           chan Photo
 	concurrentFiles   = 5
 )
 
@@ -39,20 +39,20 @@ func (e *AuthError) Unwrap() error {
 }
 
 type Source interface {
-	GetAlbums() ([]map[string]string, error)
-	AlbumPhotos(albumdID string, photo chan interface{}) error
+	AllAlbums() ([]map[string]string, error)
+	AlbumPhotos(albumdID string, photo chan Photo) error
 }
 
 type Photo interface {
-	GetUrl() string
-	GetFilename() string
-	GetAlbumName() string
-	GetExifInfo() (map[string]interface{}, error)
+	Url() string
+	Filename() string
+	AlbumName() string
+	ExifInfo() (map[string]interface{}, error)
 }
 
 type Storage interface {
 	Prepare() (string, error)
-	SavePhotos(photo chan interface{})
+	SavePhotos(photo chan Photo)
 }
 
 type Social struct {
@@ -63,8 +63,8 @@ type Social struct {
 }
 
 // GetAlbums returns albums
-func (s *Social) GetAlbums() ([]map[string]string, error) {
-	albums, err := s.source.GetAlbums()
+func (s *Social) Albums() ([]map[string]string, error) {
+	albums, err := s.source.AllAlbums()
 	if err != nil {
 		if strings.Contains(err.Error(), "Auth error") {
 			return nil, &AuthError{"Albums are inaccessible", err}
@@ -81,7 +81,7 @@ func (s *Social) DownloadAllAlbums() (string, error) {
 		return "", &SourceError{text: "dir can't be created"}
 	}
 
-	albums, err := s.source.GetAlbums()
+	albums, err := s.source.AllAlbums()
 	if err != nil {
 		if strings.Contains(err.Error(), "Auth error") {
 			return "", &AuthError{"Albums are inaccessible", err}
@@ -115,11 +115,11 @@ func (s *Social) DownloadAlbum(albumID string) (string, error) {
 }
 
 // New creates a new instance of Social, you have to provide proper options
-func New(sourceName, creds string, storage interface{}) (*Social, error) {
+func New(sourceName, creds string, storage Storage) (*Social, error) {
 	s := &Social{
 		name:    sourceName,
 		creds:   creds,
-		storage: storage.(Storage),
+		storage: storage,
 	}
 	if sourceNew, ok := RegisteredSources[sourceName]; ok {
 		s.source = sourceNew(creds)
@@ -127,7 +127,7 @@ func New(sourceName, creds string, storage interface{}) (*Social, error) {
 		return nil, &SourceError{text: "there is no such a source"}
 	}
 	if photoCh == nil {
-		photoCh = make(chan interface{}, concurrentFiles)
+		photoCh = make(chan Photo, concurrentFiles)
 		go s.storage.SavePhotos(photoCh)
 	}
 	return s, nil
@@ -143,9 +143,6 @@ func Sources() []string {
 	return listSources
 }
 
-func AddSource(sourceName string, newFunc func(string) interface{}) {
-	RegisteredSources[sourceName] = func(creds string) Source {
-		result := newFunc(creds)
-		return result.(Source)
-	}
+func AddSource(sourceName string, newFunc func(string) Source) {
+	RegisteredSources[sourceName] = newFunc
 }
