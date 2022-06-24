@@ -2,7 +2,6 @@ package sources
 
 import (
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -296,13 +295,8 @@ func TestSocial_Albums(t *testing.T) {
 				storage: tt.fields.storage,
 			}
 			got, err := s.Albums()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Social.Albums() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Social.Albums() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.wantErr, err != nil)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
