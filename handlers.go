@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Gasoid/photoDumper/sources"
+	local "github.com/Gasoid/photoDumper/storage/localfs"
 	"github.com/gin-gonic/gin"
 )
 
@@ -34,7 +35,7 @@ func sourcesHandler(c *gin.Context) {
 // @Router       /albums/{sourceName}/ [get]
 func albumsHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{})
+	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -69,7 +70,7 @@ func albumsHandler(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAlbumHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
+	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{c.Query("dir")})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -103,7 +104,7 @@ func downloadAlbumHandler(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAllAlbumsHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key, &SimpleStorage{c.Query("dir")})
+	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{c.Query("dir")})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
