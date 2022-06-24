@@ -3,15 +3,27 @@ package sources
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 )
 
 var (
-	RegisteredSources = map[string]func(string) Source{}
-	photoCh           chan Photo
-	concurrentFiles   = 5
+	registeredSources  = map[string]func(string) Source{}
+	photoCh            chan Photo
+	maxConcurrentFiles = 5
 )
+
+type StorageError struct {
+	text string
+	err  error
+}
+
+func (e *StorageError) Error() string {
+	return fmt.Sprintf("Source error: %s", e.text)
+}
+
+func (e *StorageError) Unwrap() error {
+	return e.err
+}
 
 type SourceError struct {
 	text string
@@ -26,17 +38,17 @@ func (e *SourceError) Unwrap() error {
 	return e.err
 }
 
-type AuthError struct {
-	text string
-	err  error
+type AccessError struct {
+	Text string
+	Err  error
 }
 
-func (e *AuthError) Error() string {
-	return fmt.Sprintf("Auth error: %s", e.text)
+func (e *AccessError) Error() string {
+	return fmt.Sprintf("Auth error: %s", e.Text)
 }
 
-func (e *AuthError) Unwrap() error {
-	return e.err
+func (e *AccessError) Unwrap() error {
+	return e.Err
 }
 
 type Source interface {
@@ -73,10 +85,7 @@ type Social struct {
 func (s *Social) Albums() ([]map[string]string, error) {
 	albums, err := s.source.AllAlbums()
 	if err != nil {
-		if strings.Contains(err.Error(), "Auth error") {
-			return nil, &AuthError{"Albums are inaccessible", err}
-		}
-		return nil, &SourceError{"Albums are inaccessible", err}
+		return nil, err
 	}
 	return albums, nil
 }
@@ -85,15 +94,12 @@ func (s *Social) DownloadAllAlbums() (string, error) {
 	dir, err := s.storage.Prepare()
 	if err != nil {
 		log.Println("DownloadAllAlbums(dir string)", err)
-		return "", &SourceError{text: "dir can't be created"}
+		return "", &StorageError{text: "dir can't be created", err: err}
 	}
 
 	albums, err := s.source.AllAlbums()
 	if err != nil {
-		if strings.Contains(err.Error(), "Auth error") {
-			return "", &AuthError{"Albums are inaccessible", err}
-		}
-		return "", &SourceError{"Albums are inaccessible", err}
+		return "", err
 	}
 	for _, album := range albums {
 		go func(albumID string) {
@@ -112,10 +118,7 @@ func (s *Social) DownloadAlbum(albumID string) (string, error) {
 	dir, err := s.storage.Prepare()
 	if err != nil {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
-		if strings.Contains(err.Error(), "Auth error") {
-			return "", &AuthError{"Album is inaccessible", err}
-		}
-		return "", &SourceError{"Album is inaccessible", err}
+		return "", &StorageError{text: "dir can't be created", err: err}
 	}
 	s.source.AlbumPhotos(albumID, photoCh)
 	return dir, nil
@@ -128,22 +131,22 @@ func New(sourceName, creds string, storage Storage) (*Social, error) {
 		creds:   creds,
 		storage: storage,
 	}
-	if sourceNew, ok := RegisteredSources[sourceName]; ok {
+	if sourceNew, ok := registeredSources[sourceName]; ok {
 		s.source = sourceNew(creds)
 	} else {
 		return nil, &SourceError{text: "there is no such a source"}
 	}
 	if photoCh == nil {
-		photoCh = make(chan Photo, concurrentFiles)
+		photoCh = make(chan Photo, maxConcurrentFiles)
 		go s.storage.SavePhotos(photoCh)
 	}
 	return s, nil
 }
 
 func Sources() []string {
-	listSources := make([]string, len(RegisteredSources))
+	listSources := make([]string, len(registeredSources))
 	var i int
-	for key := range RegisteredSources {
+	for key := range registeredSources {
 		listSources[i] = key
 		i++
 	}
@@ -151,5 +154,5 @@ func Sources() []string {
 }
 
 func AddSource(sourceName string, newFunc func(string) Source) {
-	RegisteredSources[sourceName] = newFunc
+	registeredSources[sourceName] = newFunc
 }

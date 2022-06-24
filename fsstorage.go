@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Gasoid/photoDumper/sources"
+	. "github.com/Gasoid/photoDumper/sources"
 	exif "github.com/Gasoid/simpleGoExif"
 )
 
@@ -67,7 +67,7 @@ func (s *SimpleStorage) createAlbumDir(albumName string) (string, error) {
 
 // It downloads the file from the url, creates a file with the name of the file, and writes the body of
 // the response to the file
-func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
+func (s *SimpleStorage) SavePhotos(photoCh chan Photo) {
 	for file := range photoCh {
 		f := file
 		go func() {
@@ -114,7 +114,7 @@ func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
 }
 
 // It's setting EXIF data for the downloaded file.
-func (s *SimpleStorage) setExifInfo(filepath string, photoExif sources.ExifInfo) error {
+func (s *SimpleStorage) setExifInfo(filepath string, photoExif ExifInfo) error {
 	image, err := exif.Open(filepath)
 	if err != nil {
 		log.Println("exif.Open", err)

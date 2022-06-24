@@ -20,14 +20,14 @@ import (
 var staticAssets embed.FS
 
 // @title        PhotoDumper
-// @version      1.0
+// @version      1.1.2
 // @description  app downloads photos from vk.
 
 // @contact.name  Rinat Almakhov
 // @contact.url   https://github.com/Gasoid/
 
-// @license.name  Apache 2.0
-// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+// @license.name  MIT License
+// @license.url   https://github.com/Gasoid/photoDumper/blob/main/LICENSE
 
 // @host      localhost:8080
 // @BasePath  /api/
@@ -35,7 +35,7 @@ var staticAssets embed.FS
 // @in query
 // @name api_key
 func main() {
-	sources.AddSource(vk.VK, vk.New)
+	sources.AddSource(vk.ID, vk.New)
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 	assets, err := fs.Sub(staticAssets, "build")

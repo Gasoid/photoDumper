@@ -30,7 +30,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "get albums list",
+                "description": "returns albums",
                 "consumes": [
                     "application/json"
                 ],
@@ -49,12 +49,36 @@ const docTemplate = `{
                 ],
                 "responses": {
                     "200": {
-                        "description": "albums",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -67,7 +91,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "download all photos of particular album",
+                "description": "download all photos of particular album, returns destination of your photos",
                 "consumes": [
                     "application/json"
                 ],
@@ -107,6 +131,30 @@ const docTemplate = `{
                                 "type": "string"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -118,7 +166,7 @@ const docTemplate = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "download all photos of all albums",
+                "description": "download all photos of all albums, returns destination of your photos",
                 "consumes": [
                     "application/json"
                 ],
@@ -151,13 +199,37 @@ const docTemplate = `{
                                 "type": "string"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/sources/": {
             "get": {
-                "description": "get sources list",
+                "description": "returns sources",
                 "consumes": [
                     "application/json"
                 ],
@@ -167,7 +239,7 @@ const docTemplate = `{
                 "summary": "Sources",
                 "responses": {
                     "200": {
-                        "description": "getSources",
+                        "description": "sources",
                         "schema": {
                             "type": "array",
                             "items": {

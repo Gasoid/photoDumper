@@ -15,7 +15,7 @@ paths:
     get:
       consumes:
       - application/json
-      description: get albums list
+      description: returns albums
       parameters:
       - description: source name
         in: path
@@ -26,11 +26,27 @@ paths:
       - application/json
       responses:
         "200":
-          description: albums
+          description: OK
           schema:
             items:
               type: string
             type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "401":
+          description: error
+          schema:
+            type: string
+        "403":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
       summary: Albums
@@ -38,7 +54,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: download all photos of particular album
+      description: download all photos of particular album, returns destination of
+        your photos
       parameters:
       - description: source name
         in: path
@@ -64,6 +81,22 @@ paths:
             items:
               type: string
             type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "401":
+          description: error
+          schema:
+            type: string
+        "403":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
       summary: download photos of album
@@ -71,7 +104,8 @@ paths:
     get:
       consumes:
       - application/json
-      description: download all photos of all albums
+      description: download all photos of all albums, returns destination of your
+        photos
       parameters:
       - description: source name
         in: path
@@ -92,6 +126,22 @@ paths:
             items:
               type: string
             type: array
+        "400":
+          description: error
+          schema:
+            type: string
+        "401":
+          description: error
+          schema:
+            type: string
+        "403":
+          description: error
+          schema:
+            type: string
+        "500":
+          description: error
+          schema:
+            type: string
       security:
       - ApiKeyAuth: []
       summary: download photos of albums
@@ -99,12 +149,12 @@ paths:
     get:
       consumes:
       - application/json
-      description: get sources list
+      description: returns sources
       produces:
       - application/json
       responses:
         "200":
-          description: getSources
+          description: sources
           schema:
             items:
               type: string
