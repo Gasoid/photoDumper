@@ -8,10 +8,10 @@
             "url": "https://github.com/Gasoid/"
         },
         "license": {
-            "name": "Apache 2.0",
-            "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
+            "name": "MIT License",
+            "url": "https://github.com/Gasoid/photoDumper/blob/main/LICENSE"
         },
-        "version": "1.0"
+        "version": "1.1.2"
     },
     "host": "localhost:8080",
     "basePath": "/api/",
@@ -23,7 +23,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "get albums list",
+                "description": "returns albums",
                 "consumes": [
                     "application/json"
                 ],
@@ -42,12 +42,36 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "albums",
+                        "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
                                 "type": "string"
                             }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -60,7 +84,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "download all photos of particular album",
+                "description": "download all photos of particular album, returns destination of your photos",
                 "consumes": [
                     "application/json"
                 ],
@@ -100,6 +124,30 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
@@ -111,7 +159,7 @@
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "download all photos of all albums",
+                "description": "download all photos of all albums, returns destination of your photos",
                 "consumes": [
                     "application/json"
                 ],
@@ -144,13 +192,37 @@
                                 "type": "string"
                             }
                         }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "string"
+                        }
                     }
                 }
             }
         },
         "/sources/": {
             "get": {
-                "description": "get sources list",
+                "description": "returns sources",
                 "consumes": [
                     "application/json"
                 ],
@@ -160,7 +232,7 @@
                 "summary": "Sources",
                 "responses": {
                     "200": {
-                        "description": "getSources",
+                        "description": "sources",
                         "schema": {
                             "type": "array",
                             "items": {
