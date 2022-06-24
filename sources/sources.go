@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 )
 
 var (
@@ -43,11 +44,17 @@ type Source interface {
 	AlbumPhotos(albumdID string, photo chan Photo) error
 }
 
+type ExifInfo interface {
+	Description() string
+	Created() time.Time
+	GPS() []float64
+}
+
 type Photo interface {
 	Url() string
 	Filename() string
 	AlbumName() string
-	ExifInfo() (map[string]interface{}, error)
+	ExifInfo() (ExifInfo, error)
 }
 
 type Storage interface {

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/Gasoid/photoDumper/sources"
 	exif "github.com/Gasoid/simpleGoExif"
@@ -103,46 +102,41 @@ func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
 				return
 			}
 			out.Close()
-			s.setExifInfo(filepath, f)
+			photoExif, err := f.ExifInfo()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			s.setExifInfo(filepath, photoExif)
 		}()
 	}
 	log.Println("channel closed")
 }
 
 // It's setting EXIF data for the downloaded file.
-func (s *SimpleStorage) setExifInfo(filepath string, photo sources.Photo) error {
+func (s *SimpleStorage) setExifInfo(filepath string, photoExif sources.ExifInfo) error {
 	image, err := exif.Open(filepath)
 	if err != nil {
 		log.Println("exif.Open", err)
 		return err
 	}
 	defer image.Close()
-	// Description
-	exifInfo, err := photo.ExifInfo()
+
+	err = image.SetDescription(photoExif.Description())
 	if err != nil {
-		log.Println("photo.ExifInfo()", err)
+		log.Println("image.SetDescription", err)
 		return err
 	}
-	if description, ok := exifInfo["description"].(string); ok {
-		err = image.SetDescription(description)
-		if err != nil {
-			log.Println("image.SetDescription", err)
-			return err
-		}
+	err = image.SetTime(photoExif.Created())
+	if err != nil {
+		log.Println("image.SetTime", err)
+		return err
 	}
-	if created, ok := exifInfo["created"].(time.Time); ok {
-		err = image.SetTime(created)
-		if err != nil {
-			log.Println("image.SetTime", err)
-			return err
-		}
-	}
-	if gps, ok := exifInfo["gps"].([]float64); ok {
-		err = image.SetGPS(gps[0], gps[1])
-		if err != nil {
-			log.Println("image.SetGPS", err)
-			return err
-		}
+	gps := photoExif.GPS()
+	err = image.SetGPS(gps[0], gps[1])
+	if err != nil {
+		log.Println("image.SetGPS", err)
+		return err
 	}
 
 	return nil

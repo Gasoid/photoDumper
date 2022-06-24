@@ -66,15 +66,32 @@ func (f *DownloadFile) Filename() string {
 	return filepath.Base(u.Path)
 }
 
-// It's setting EXIF data for the downloaded file.
-func (f *DownloadFile) ExifInfo() (map[string]interface{}, error) {
-	exifInfo := map[string]interface{}{
-		"description": fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName),
-		"created":     f.created,
-		"gps":         []float64{f.latitude, f.longitude},
-	}
+type exifInfo struct {
+	description string
+	created     time.Time
+	gps         []float64
+}
 
-	return exifInfo, nil
+func (e *exifInfo) Description() string {
+	return e.description
+}
+
+func (e *exifInfo) Created() time.Time {
+	return e.created
+}
+
+func (e *exifInfo) GPS() []float64 {
+	return e.gps
+}
+
+// It's setting EXIF data for the downloaded file.
+func (f *DownloadFile) ExifInfo() (sources.ExifInfo, error) {
+	exif := &exifInfo{
+		description: fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName),
+		created:     f.created,
+		gps:         []float64{f.latitude, f.longitude},
+	}
+	return exif, nil
 }
 
 // It creates a new Vk object, which is a wrapper around the vkAPI object
