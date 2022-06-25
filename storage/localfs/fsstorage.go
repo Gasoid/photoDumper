@@ -1,6 +1,7 @@
 package localfs
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -8,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	. "github.com/Gasoid/photoDumper/sources"
+	"github.com/Gasoid/photoDumper/sources"
 	exif "github.com/Gasoid/simpleGoExif"
 )
 
@@ -67,7 +68,7 @@ func (s *SimpleStorage) createAlbumDir(albumName string) (string, error) {
 
 // It downloads the file from the url, creates a file with the name of the file, and writes the body of
 // the response to the file
-func (s *SimpleStorage) SavePhotos(photoCh chan Photo) {
+func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
 	for file := range photoCh {
 		f := file
 		go func() {
@@ -114,14 +115,16 @@ func (s *SimpleStorage) SavePhotos(photoCh chan Photo) {
 }
 
 // It's setting EXIF data for the downloaded file.
-func (s *SimpleStorage) setExifInfo(filepath string, photoExif ExifInfo) error {
+func (s *SimpleStorage) setExifInfo(filepath string, photoExif sources.ExifInfo) error {
 	image, err := exif.Open(filepath)
 	if err != nil {
 		log.Println("exif.Open", err)
 		return err
 	}
 	defer image.Close()
-
+	if photoExif == nil {
+		return errors.New("exif is empty")
+	}
 	err = image.SetDescription(photoExif.Description())
 	if err != nil {
 		log.Println("image.SetDescription", err)
@@ -133,6 +136,9 @@ func (s *SimpleStorage) setExifInfo(filepath string, photoExif ExifInfo) error {
 		return err
 	}
 	gps := photoExif.GPS()
+	if gps == nil {
+		return errors.New("gps is empty")
+	}
 	err = image.SetGPS(gps[0], gps[1])
 	if err != nil {
 		log.Println("image.SetGPS", err)
