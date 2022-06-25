@@ -17,7 +17,6 @@ func (s *StorageTest) Prepare() (string, error) {
 }
 
 func (s *StorageTest) SavePhotos(photo chan Photo) {
-	return
 }
 
 type SourceTest struct {

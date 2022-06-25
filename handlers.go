@@ -70,7 +70,7 @@ func albumsHandler(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAlbumHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{c.Query("dir")})
+	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{Dir: c.Query("dir")})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -104,7 +104,7 @@ func downloadAlbumHandler(c *gin.Context) {
 // @Security     ApiKeyAuth
 func downloadAllAlbumsHandler(c *gin.Context) {
 	api_key := c.Query("api_key")
-	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{c.Query("dir")})
+	source, err := sources.New(c.Param("sourceName"), api_key, &local.SimpleStorage{Dir: c.Query("dir")})
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
