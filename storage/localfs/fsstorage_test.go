@@ -201,58 +201,63 @@ func TestSimpleStorage_createAlbumDir(t *testing.T) {
 	}
 }
 
-func TestSimpleStorage_SavePhotos(t *testing.T) {
+func TestSimpleStorage_SavePhoto(t *testing.T) {
 	type fields struct {
 		Dir string
 	}
 	type args struct {
-		photoCh chan sources.Photo
+		f sources.Photo
 	}
 	tests := []struct {
-		name      string
-		fields    fields
-		args      args
-		photoItem PhotoItem
+		name   string
+		fields fields
+		args   args
+		//photoItem PhotoItem
 	}{
 		{
-			name:      "empty url",
-			fields:    fields{Dir: "/tmp/photoD"},
-			photoItem: PhotoItem{url: ""},
+			name:   "empty f",
+			fields: fields{Dir: "/tmp/photoD"},
+			args:   args{},
 		},
 		{
-			name:      "empty exif",
-			fields:    fields{Dir: "/tmp/photoD"},
-			photoItem: PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"},
+			name:   "empty url",
+			fields: fields{Dir: "/tmp/photoD"},
+			args:   args{f: &PhotoItem{url: ""}},
 		},
 		{
-			name:      "404",
-			fields:    fields{Dir: "/tmp/photoD"},
-			photoItem: PhotoItem{url: "https://github.com/Gasoid/photoDumper/sdf"},
+			name:   "empty exif",
+			fields: fields{Dir: "/tmp/photoD"},
+			args:   args{f: &PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"}},
 		},
 		{
-			name:      "dir is empty",
-			fields:    fields{Dir: ""},
-			photoItem: PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"},
+			name:   "404",
+			fields: fields{Dir: "/tmp/photoD"},
+			args:   args{f: &PhotoItem{url: "https://github.com/Gasoid/photoDumper/sdf"}},
+		},
+		{
+			name:   "dir is empty",
+			fields: fields{Dir: ""},
+			args:   args{f: &PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"}},
 		},
 		{
 			name:   "exif",
 			fields: fields{Dir: "/tmp/photoD"},
-			photoItem: PhotoItem{
+			args: args{f: &PhotoItem{
 				url:       "https://picsum.photos/200/300.jpg",
 				filename:  "300.jpg",
 				albumName: "300",
 				exifInfo:  &ExifInfo{gps: []float64{0, 0}},
-			},
+			}},
 		},
 		{
 			name:   "gps is nil",
 			fields: fields{Dir: "/tmp/photoD"},
-			photoItem: PhotoItem{
+			args: args{f: &PhotoItem{
 				url:       "https://picsum.photos/200/300.jpg",
 				filename:  "300.jpg",
 				albumName: "300",
 				exifInfo:  &ExifInfo{},
-			},
+			}},
 		},
 	}
 	for _, tt := range tests {
@@ -260,13 +265,7 @@ func TestSimpleStorage_SavePhotos(t *testing.T) {
 			s := &SimpleStorage{
 				Dir: tt.fields.Dir,
 			}
-			tt.args.photoCh = make(chan sources.Photo, 2)
-			go func() {
-				time.Sleep(1 * time.Second)
-				close(tt.args.photoCh)
-			}()
-			tt.args.photoCh <- &tt.photoItem
-			s.SavePhotos(tt.args.photoCh)
+			s.SavePhoto(tt.args.f)
 		})
 	}
 }

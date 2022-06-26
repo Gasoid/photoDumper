@@ -15,7 +15,6 @@ import (
 
 const (
 	maxCount = 1000
-	ID       = "vk"
 )
 
 type Vk struct {
@@ -159,4 +158,22 @@ func makeError(err error, text string) error {
 		return &sources.AccessError{Text: text, Err: err}
 	}
 	return fmt.Errorf("%s: %w", text, err)
+}
+
+type service struct{}
+
+func (s *service) Kind() sources.Kind {
+	return sources.KindSource
+}
+
+func (s *service) Key() string {
+	return "vk"
+}
+
+func (s *service) Constructor() func(creds string) sources.Source {
+	return New
+}
+
+func NewService() sources.ServiceSource {
+	return &service{}
 }

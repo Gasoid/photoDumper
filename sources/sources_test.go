@@ -16,7 +16,7 @@ func (s *StorageTest) Prepare() (string, error) {
 	return s.dir, s.err
 }
 
-func (s *StorageTest) SavePhotos(photo chan Photo) {
+func (s *StorageTest) SavePhoto(photo Photo) {
 }
 
 type SourceTest struct {
@@ -31,10 +31,43 @@ func (source *SourceTest) AlbumPhotos(albumdID string, photo chan Photo) error {
 	return source.err
 }
 
+type service struct{}
+
+func (s *service) Kind() Kind {
+	return KindSource
+}
+
+func (s *service) Key() string {
+	return "test"
+}
+
+func (s *service) Constructor() func(creds string) Source {
+	return func(creds string) Source {
+		return &SourceTest{}
+	}
+}
+
+type storage struct{}
+
+func (s *storage) Kind() Kind {
+	return KindStorage
+}
+
+func (s *storage) Key() string {
+	return "test"
+}
+
+func (s *storage) Constructor() func() Storage {
+	return func() Storage {
+		return &StorageTest{}
+	}
+}
+
 func TestNew(t *testing.T) {
 	sourceTest := &SourceTest{}
 	storageTest := &StorageTest{}
-	AddSource("test", func(creds string) Source { return sourceTest })
+	AddSource(&service{})
+	AddStorage(&storage{})
 	type args struct {
 		sourceName string
 		creds      string
@@ -54,8 +87,6 @@ func TestNew(t *testing.T) {
 				storage:    storageTest,
 			},
 			want: &Social{
-				name:    "test",
-				creds:   "secrets",
 				source:  sourceTest,
 				storage: storageTest,
 			},
@@ -74,7 +105,7 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := New(tt.args.sourceName, tt.args.creds, tt.args.storage)
+			got, err := New(tt.args.sourceName, tt.args.creds)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})
@@ -82,9 +113,8 @@ func TestNew(t *testing.T) {
 }
 
 func TestSources(t *testing.T) {
-	sourceTest := &SourceTest{}
 	registeredSources = map[string]func(string) Source{}
-	AddSource("test", func(creds string) Source { return sourceTest })
+	AddSource(&service{})
 	tests := []struct {
 		name string
 		want []string
@@ -152,8 +182,6 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Social{
-				name:    tt.fields.name,
-				creds:   tt.fields.creds,
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
@@ -231,8 +259,6 @@ func TestSocial_DownloadAllAlbums(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Social{
-				name:    tt.fields.name,
-				creds:   tt.fields.creds,
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
@@ -288,8 +314,6 @@ func TestSocial_Albums(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &Social{
-				name:    tt.fields.name,
-				creds:   tt.fields.creds,
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
