@@ -12,6 +12,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
+	local "github.com/Gasoid/photoDumper/storage/localfs"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -35,7 +36,8 @@ var staticAssets embed.FS
 // @in query
 // @name api_key
 func main() {
-	sources.AddSource(vk.ID, vk.New)
+	sources.AddSource(vk.NewService())
+	sources.AddStorage(local.NewService())
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
 	assets, err := fs.Sub(staticAssets, "build")

@@ -6,8 +6,16 @@ import (
 	"time"
 )
 
+type Kind int
+
+const (
+	KindSource Kind = iota
+	KindStorage
+)
+
 var (
-	registeredSources  = map[string]func(string) Source{}
+	registeredSources  = map[string]func(creds string) Source{}
+	registeredStorages = map[string]func() Storage{}
 	photoCh            chan Photo
 	maxConcurrentFiles = 5
 )
@@ -71,12 +79,10 @@ type Photo interface {
 
 type Storage interface {
 	Prepare() (string, error)
-	SavePhotos(photo chan Photo)
+	SavePhoto(photo Photo)
 }
 
 type Social struct {
-	name    string
-	creds   string
 	source  Source
 	storage Storage
 }
@@ -124,23 +130,72 @@ func (s *Social) DownloadAlbum(albumID string) (string, error) {
 	return dir, nil
 }
 
+func (s *Social) savePhotos(photoCh chan Photo) {
+	for file := range photoCh {
+		f := file
+		go func() {
+			s.storage.SavePhoto(f)
+		}()
+	}
+	log.Println("channel closed")
+}
+
 // New creates a new instance of Social, you have to provide proper options
-func New(sourceName, creds string, storage Storage) (*Social, error) {
+func New(sourceName, creds string) (*Social, error) {
+	source, err := ProvideSource(sourceName, creds)
+	if err != nil {
+		return nil, err
+	}
+	storage, err := ProvideStorage()
+	if err != nil {
+		return nil, err
+	}
 	s := &Social{
-		name:    sourceName,
-		creds:   creds,
 		storage: storage,
 	}
-	if sourceNew, ok := registeredSources[sourceName]; ok {
-		s.source = sourceNew(creds)
-	} else {
-		return nil, &SourceError{text: "there is no such a source"}
-	}
+	s.source = source
 	if photoCh == nil {
 		photoCh = make(chan Photo, maxConcurrentFiles)
-		go s.storage.SavePhotos(photoCh)
+		go s.savePhotos(photoCh)
 	}
 	return s, nil
+}
+
+type Service interface {
+	Key() string
+}
+
+type ServiceSource interface {
+	Service
+	Constructor() func(creds string) Source
+}
+
+type ServiceStorage interface {
+	Service
+	Constructor() func() Storage
+}
+
+func AddSource(s ServiceSource) {
+	registeredSources[s.Key()] = s.Constructor()
+}
+
+func AddStorage(s ServiceStorage) {
+	registeredStorages[s.Key()] = s.Constructor()
+}
+
+func ProvideSource(key string, creds string) (Source, error) {
+	if newFunc, ok := registeredSources[key]; ok {
+		return newFunc(creds), nil
+	} else {
+		return nil, &SourceError{text: "Source was not found"}
+	}
+}
+
+func ProvideStorage() (Storage, error) {
+	for _, v := range registeredStorages {
+		return v(), nil
+	}
+	return nil, &StorageError{text: "no storages"}
 }
 
 func Sources() []string {
@@ -151,8 +206,4 @@ func Sources() []string {
 		i++
 	}
 	return listSources
-}
-
-func AddSource(sourceName string, newFunc func(string) Source) {
-	registeredSources[sourceName] = newFunc
 }

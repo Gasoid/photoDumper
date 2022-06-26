@@ -68,50 +68,46 @@ func (s *SimpleStorage) createAlbumDir(albumName string) (string, error) {
 
 // It downloads the file from the url, creates a file with the name of the file, and writes the body of
 // the response to the file
-func (s *SimpleStorage) SavePhotos(photoCh chan sources.Photo) {
-	for file := range photoCh {
-		f := file
-		go func() {
-			// Get the data
-			resp, err := http.Get(f.Url())
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			if resp.StatusCode != http.StatusOK {
-				log.Printf("%q is unavailable. code is %d", f.Url(), resp.StatusCode)
-				return
-			}
-			defer resp.Body.Close()
-			dir, err := s.createAlbumDir(f.AlbumName())
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			filepath := s.FilePath(dir, f.Filename())
-			// Create the file
-			out, err := os.Create(filepath)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-
-			// Write the body to file
-			_, err = io.Copy(out, resp.Body)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			out.Close()
-			photoExif, err := f.ExifInfo()
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			s.setExifInfo(filepath, photoExif)
-		}()
+func (s *SimpleStorage) SavePhoto(f sources.Photo) {
+	if f == nil {
+		return
 	}
-	log.Println("channel closed")
+	resp, err := http.Get(f.Url())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("%q is unavailable. code is %d", f.Url(), resp.StatusCode)
+		return
+	}
+	defer resp.Body.Close()
+	dir, err := s.createAlbumDir(f.AlbumName())
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	filepath := s.FilePath(dir, f.Filename())
+	// Create the file
+	out, err := os.Create(filepath)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	// Write the body to file
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	out.Close()
+	photoExif, err := f.ExifInfo()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	s.setExifInfo(filepath, photoExif)
 }
 
 // It's setting EXIF data for the downloaded file.
@@ -146,4 +142,26 @@ func (s *SimpleStorage) setExifInfo(filepath string, photoExif sources.ExifInfo)
 	}
 
 	return nil
+}
+
+func New() sources.Storage {
+	return &SimpleStorage{}
+}
+
+type service struct{}
+
+func (s *service) Kind() sources.Kind {
+	return sources.KindStorage
+}
+
+func (s *service) Key() string {
+	return "fs"
+}
+
+func (s *service) Constructor() func() sources.Storage {
+	return New
+}
+
+func NewService() sources.ServiceStorage {
+	return &service{}
 }
