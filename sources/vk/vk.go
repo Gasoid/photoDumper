@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -38,14 +36,6 @@ func (f *PhotoItem) Url() string {
 
 func (f *PhotoItem) AlbumName() string {
 	return f.albumName
-}
-
-func (f *PhotoItem) Filename() string {
-	u, err := url.Parse(f.url)
-	if err != nil {
-		return ""
-	}
-	return filepath.Base(u.Path)
 }
 
 // It's setting EXIF data for the downloaded file.
