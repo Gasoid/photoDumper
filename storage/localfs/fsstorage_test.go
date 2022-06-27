@@ -25,27 +25,6 @@ func (e *ExifInfo) GPS() []float64 {
 	return e.gps
 }
 
-type PhotoItem struct {
-	url       string
-	filename  string
-	albumName string
-	exifInfo  sources.ExifInfo
-	err       error
-}
-
-func (p *PhotoItem) Url() string {
-	return p.url
-}
-func (p *PhotoItem) Filename() string {
-	return p.filename
-}
-func (p *PhotoItem) AlbumName() string {
-	return p.albumName
-}
-func (p *PhotoItem) ExifInfo() (sources.ExifInfo, error) {
-	return p.exifInfo, p.err
-}
-
 func TestSimpleStorage_dirPath(t *testing.T) {
 	type fields struct {
 		Dir string
@@ -287,7 +266,19 @@ func TestSimpleStorage_SetExif(t *testing.T) {
 		{
 			name:    "gps is nil",
 			fields:  fields{Dir: "/tmp/photoD"},
-			args:    args{filepath: "/tmp/photoD/1.jpg", photoExif: &ExifInfo{}},
+			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{}},
+			wantErr: true,
+		},
+		{
+			name:    "gps exists",
+			fields:  fields{Dir: "/tmp/photoD"},
+			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{gps: []float64{45.4545, 45.4545}}},
+			wantErr: false,
+		},
+		{
+			name:    "wrong path",
+			fields:  fields{Dir: "/tmp/photoD"},
+			args:    args{filepath: "/tmp/photoD/301.jpg"},
 			wantErr: true,
 		},
 	}
@@ -296,6 +287,7 @@ func TestSimpleStorage_SetExif(t *testing.T) {
 			s := &SimpleStorage{
 				dir: tt.fields.Dir,
 			}
+			s.DownloadPhoto("https://picsum.photos/200/300.jpg", tt.fields.Dir)
 			err := s.SetExif(tt.args.filepath, tt.args.photoExif)
 			assert.Equal(t, tt.wantErr, err != nil)
 		})
@@ -324,12 +316,94 @@ func Test_filename(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name:    "empty",
+			args:    args{path: ":/sdfsdf/sdfsdf"},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := filename(tt.args.path)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "not nil",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := New()
+			assert.NotNil(t, got)
+		})
+	}
+}
+
+func Test_service_Kind(t *testing.T) {
+	tests := []struct {
+		name string
+		s    *service
+		want sources.Kind
+	}{
+		{
+			name: "kind",
+			s:    &service{},
+			want: sources.KindStorage,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.s.Kind()
+			assert.Equal(t, tt.want, got)
+			k := tt.s.Key()
+			assert.Equal(t, "fs", k)
+		})
+	}
+}
+
+func Test_service_Constructor(t *testing.T) {
+	tests := []struct {
+		name string
+		s    *service
+		want func() sources.Storage
+	}{
+		{
+			name: "new",
+			s:    &service{},
+			want: New,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &service{}
+			got := s.Constructor()
+			assert.NotEmpty(t, got)
+		})
+	}
+}
+
+func TestNewService(t *testing.T) {
+	tests := []struct {
+		name string
+		want sources.ServiceStorage
+	}{
+		{
+			name: "service",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = NewService()
 		})
 	}
 }

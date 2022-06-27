@@ -3,9 +3,27 @@ package sources
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
+
+type PhotoItem struct {
+	url       string
+	albumName string
+	exifInfo  ExifInfo
+	err       error
+}
+
+func (p *PhotoItem) Url() string {
+	return p.url
+}
+func (p *PhotoItem) AlbumName() string {
+	return p.albumName
+}
+func (p *PhotoItem) ExifInfo() (ExifInfo, error) {
+	return p.exifInfo, p.err
+}
 
 type StorageTest struct {
 	dir               string
@@ -110,6 +128,41 @@ func TestNew(t *testing.T) {
 			name: "has error",
 			args: args{
 				sourceName: "nonExistent",
+				creds:      "secrets",
+				storage:    storageTest,
+			},
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := New(tt.args.sourceName, tt.args.creds)
+			assert.Equal(t, tt.wantErr, err != nil)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNew_NoStorage(t *testing.T) {
+	storageTest := &StorageTest{}
+	registeredStorages = map[string]func() Storage{}
+	AddSource(&service{})
+	type args struct {
+		sourceName string
+		creds      string
+		storage    Storage
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Social
+		wantErr bool
+	}{
+		{
+			name: "error",
+			args: args{
+				sourceName: "test",
 				creds:      "secrets",
 				storage:    storageTest,
 			},
@@ -335,6 +388,110 @@ func TestSocial_Albums(t *testing.T) {
 			got, err := s.Albums()
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestSocial_savePhotos(t *testing.T) {
+	type fields struct {
+		source  Source
+		storage Storage
+	}
+	type args struct {
+		photoCh chan Photo
+		exifErr error
+	}
+	tests := []struct {
+		name   string
+		fields fields
+		args   args
+	}{
+		{
+			name: "no error",
+			fields: fields{
+				source:  &SourceTest{},
+				storage: &StorageTest{albumdir: "asd", downloadPhoto: "/tmp/photoD/asd.jpg"},
+			},
+		},
+		{
+			name: "album error",
+			fields: fields{
+				source:  &SourceTest{},
+				storage: &StorageTest{createalbumdirErr: errors.New("something goes wrong")},
+			},
+		},
+		{
+			name: "download error",
+			fields: fields{
+				source:  &SourceTest{},
+				storage: &StorageTest{downloadPhotoErr: errors.New("something goes wrong")},
+			},
+		},
+		{
+			name: "exif error",
+			fields: fields{
+				source:  &SourceTest{},
+				storage: &StorageTest{albumdir: "asd", downloadPhoto: "/tmp/photoD/asd.jpg"},
+			},
+			args: args{exifErr: errors.New("something goes wrong")},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.photoCh = make(chan Photo, maxConcurrentFiles)
+			s := &Social{
+				source:  tt.fields.source,
+				storage: tt.fields.storage,
+			}
+			tt.args.photoCh <- &PhotoItem{albumName: "album1", url: "https://example.com/asd.jpg", err: tt.args.exifErr}
+			go func() {
+				time.Sleep(1 * time.Second)
+				close(tt.args.photoCh)
+			}()
+			s.savePhotos(tt.args.photoCh)
+		})
+	}
+}
+
+func TestStorageError_Error(t *testing.T) {
+	type fields struct {
+		text string
+		err  error
+	}
+	tests := []struct {
+		name string
+		err  error
+		// want    string
+		// wantErr string
+	}{
+		{
+			name: "Storage error",
+			err: &StorageError{
+				text: "test",
+				err:  errors.New("original error"),
+			},
+		},
+		{
+			name: "Source error",
+			err: &SourceError{
+				text: "test",
+				err:  errors.New("original error"),
+			},
+		},
+		{
+			name: "Acess error",
+			err: &AccessError{
+				Text: "test",
+				Err:  errors.New("original error"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			text := tt.err.Error()
+			errors.Unwrap(tt.err)
+			assert.NotEmpty(t, text)
+			//tt.err.Unwrap()
 		})
 	}
 }
