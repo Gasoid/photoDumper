@@ -79,7 +79,7 @@ type Photo interface {
 type Storage interface {
 	Prepare(dir string) (string, error)
 	CreateAlbumDir(dir string) (string, error)
-	DownloadPhoto(url, dir string) (string, error)
+	DownloadPhoto(photoUrl, dir string) (string, error)
 	SetExif(filepath string, info ExifInfo) error
 }
 
@@ -168,8 +168,8 @@ func New(sourceName, creds string) (*Social, error) {
 	}
 	s := &Social{
 		storage: storage,
+		source:  source,
 	}
-	s.source = source
 	if photoCh == nil {
 		photoCh = make(chan Photo, maxConcurrentFiles)
 		go s.savePhotos(photoCh)

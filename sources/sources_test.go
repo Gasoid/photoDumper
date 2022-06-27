@@ -8,15 +8,29 @@ import (
 )
 
 type StorageTest struct {
-	dir string
-	err error
+	dir               string
+	err               error
+	albumdir          string
+	createalbumdirErr error
+	downloadPhoto     string
+	downloadPhotoErr  error
+	setExifErr        error
 }
 
-func (s *StorageTest) Prepare() (string, error) {
+func (s *StorageTest) Prepare(dir string) (string, error) {
 	return s.dir, s.err
 }
 
-func (s *StorageTest) SavePhoto(photo Photo) {
+func (s *StorageTest) DownloadPhoto(photoUrl, dir string) (string, error) {
+	return s.downloadPhoto, s.downloadPhotoErr
+}
+
+func (s *StorageTest) CreateAlbumDir(dir string) (string, error) {
+	return s.albumdir, s.createalbumdirErr
+}
+
+func (s *StorageTest) SetExif(filepath string, data ExifInfo) error {
+	return s.setExifErr
 }
 
 type SourceTest struct {
@@ -142,6 +156,7 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 	}
 	type args struct {
 		albumID string
+		dest    string
 	}
 	tests := []struct {
 		name    string
@@ -156,10 +171,11 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 				name:    "test",
 				creds:   "secret",
 				source:  sourceTest,
-				storage: &StorageTest{"dir", nil},
+				storage: &StorageTest{dir: "dir", err: nil},
 			},
 			args: args{
 				albumID: "123",
+				dest:    "/tmp/photoD/album1",
 			},
 			want:    "dir",
 			wantErr: false,
@@ -170,10 +186,11 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 				name:    "test",
 				creds:   "secret",
 				source:  sourceTest,
-				storage: &StorageTest{"dir", errors.New("error")},
+				storage: &StorageTest{dir: "dir", err: errors.New("error")},
 			},
 			args: args{
 				albumID: "123",
+				dest:    "/tmp/photoD/album1",
 			},
 			want:    "",
 			wantErr: true,
@@ -185,7 +202,7 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
-			got, err := s.DownloadAlbum(tt.args.albumID)
+			got, err := s.DownloadAlbum(tt.args.albumID, tt.args.dest)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})
@@ -200,58 +217,56 @@ func TestSocial_DownloadAllAlbums(t *testing.T) {
 	}
 	sourceTest := &SourceTest{}
 	type fields struct {
-		name    string
-		creds   string
 		source  Source
 		storage Storage
+	}
+	type args struct {
+		dest string
 	}
 	tests := []struct {
 		name    string
 		fields  fields
+		args    args
 		want    string
 		wantErr bool
 	}{
 		{
 			name: "no error",
 			fields: fields{
-				name:    "test",
-				creds:   "secret",
 				source:  sourceTest,
-				storage: &StorageTest{"dir", nil},
+				storage: &StorageTest{dir: "dir", err: nil},
 			},
+			args:    args{dest: "/tmp/photoD"},
 			want:    "dir",
 			wantErr: false,
 		},
 		{
 			name: "source error",
 			fields: fields{
-				name:    "test",
-				creds:   "secret",
 				source:  &SourceTest{err: errors.New("error")},
-				storage: &StorageTest{"dir", nil},
+				storage: &StorageTest{dir: "dir", err: nil},
 			},
+			args:    args{dest: "/tmp/photoD"},
 			want:    "",
 			wantErr: true,
 		},
 		{
 			name: "storage error",
 			fields: fields{
-				name:    "test",
-				creds:   "secret",
 				source:  &SourceTest{},
 				storage: &StorageTest{err: errors.New("error")},
 			},
+			args:    args{dest: "/tmp/photoD"},
 			want:    "",
 			wantErr: true,
 		},
 		{
 			name: "download no error",
 			fields: fields{
-				name:    "test",
-				creds:   "secret",
 				source:  &SourceTest{albums: albums},
 				storage: &StorageTest{},
 			},
+			args:    args{dest: "/tmp/photoD"},
 			want:    "",
 			wantErr: false,
 		},
@@ -262,7 +277,7 @@ func TestSocial_DownloadAllAlbums(t *testing.T) {
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
-			got, err := s.DownloadAllAlbums()
+			got, err := s.DownloadAllAlbums(tt.args.dest)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})

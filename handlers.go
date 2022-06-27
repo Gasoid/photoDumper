@@ -82,7 +82,7 @@ func downloadAlbumHandler(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"dir": dir})
+	c.JSON(http.StatusOK, gin.H{"dir": dir, "error": ""})
 }
 
 // downloadAllAlbumsHandler godoc
@@ -115,5 +115,5 @@ func downloadAllAlbumsHandler(c *gin.Context) {
 		}
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"dir": dir})
+	c.JSON(http.StatusOK, gin.H{"dir": dir, "error": ""})
 }

@@ -53,12 +53,16 @@ func (s *SimpleStorage) FilePath(dir, filename string) string {
 	return filepath.Join(dir, filename)
 }
 
-func filename(path string) string {
+func filename(path string) (string, error) {
 	u, err := url.Parse(path)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return filepath.Base(u.Path)
+	name := filepath.Base(u.Path)
+	if filepath.Ext(name) == "" {
+		return "", errors.New("no ext")
+	}
+	return name, nil
 }
 
 func (s *SimpleStorage) CreateAlbumDir(albumName string) (string, error) {
@@ -84,8 +88,12 @@ func (s *SimpleStorage) DownloadPhoto(url, dir string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-
-	filepath := s.FilePath(dir, filename(url))
+	name, err := filename(url)
+	if err != nil {
+		log.Println(err)
+		return "", err
+	}
+	filepath := s.FilePath(dir, name)
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
