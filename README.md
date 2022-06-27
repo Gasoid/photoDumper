@@ -1,4 +1,8 @@
 # photoDumper
+[![CI](https://github.com/Gasoid/photoDumper/actions/workflows/ci.yml/badge.svg)](https://github.com/Gasoid/photoDumper/actions/workflows/ci.yml) 
+[![codecov](https://codecov.io/gh/Gasoid/photoDumper/branch/main/graph/badge.svg?token=I5MSN7TKRL)](https://codecov.io/gh/Gasoid/photoDumper)
+
+
 Tool downloads photos from VK albums (except from system albums)
 
 ![screen](screen.webp)
