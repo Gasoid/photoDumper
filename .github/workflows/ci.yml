@@ -1,0 +1,43 @@
+name: CI
+on: [push]
+jobs:
+  golanglint:
+    name: Linter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: mkdir build && touch build/index.html
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.46
+
+  tests:
+    # needs: [golanglint]
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - run: mkdir build && touch build/index.html
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.18
+      id: go
+
+    - uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Test
+      run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
+
+    - uses: codecov/codecov-action@v2
+      with:
+        name: Upload coverage
+        files: ./coverage.txt
+        fail_ci_if_error: true
+        verbose: true

@@ -25,27 +25,6 @@ func (e *ExifInfo) GPS() []float64 {
 	return e.gps
 }
 
-type PhotoItem struct {
-	url       string
-	filename  string
-	albumName string
-	exifInfo  sources.ExifInfo
-	err       error
-}
-
-func (p *PhotoItem) Url() string {
-	return p.url
-}
-func (p *PhotoItem) Filename() string {
-	return p.filename
-}
-func (p *PhotoItem) AlbumName() string {
-	return p.albumName
-}
-func (p *PhotoItem) ExifInfo() (sources.ExifInfo, error) {
-	return p.exifInfo, p.err
-}
-
 func TestSimpleStorage_dirPath(t *testing.T) {
 	type fields struct {
 		Dir string
@@ -85,7 +64,7 @@ func TestSimpleStorage_dirPath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
+				dir: tt.fields.Dir,
 			}
 			got, err := s.dirPath(tt.args.dir)
 			assert.Equal(t, tt.wantErr, err != nil)
@@ -115,13 +94,17 @@ func TestSimpleStorage_Prepare(t *testing.T) {
 			want:    "/tmp/photoD",
 			wantErr: false,
 		},
+		{
+			name:    "error",
+			fields:  fields{Dir: ""},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
-			}
-			got, err := s.Prepare()
+			s := &SimpleStorage{}
+			got, err := s.Prepare(tt.fields.Dir)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})
@@ -152,7 +135,7 @@ func TestSimpleStorage_FilePath(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
+				dir: tt.fields.Dir,
 			}
 			got := s.FilePath(tt.args.dir, tt.args.filename)
 			assert.Equal(t, tt.want, got)
@@ -181,32 +164,33 @@ func TestSimpleStorage_createAlbumDir(t *testing.T) {
 			want:    "/tmp/photoD/album1",
 			wantErr: false,
 		},
-		{
-			name:    "error",
-			fields:  fields{Dir: ""},
-			args:    args{albumName: "brrr"},
-			want:    "",
-			wantErr: true,
-		},
+		// {
+		// 	name:    "error",
+		// 	fields:  fields{Dir: ""},
+		// 	args:    args{albumName: "brrr"},
+		// 	want:    "",
+		// 	wantErr: true,
+		// },
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
+				dir: tt.fields.Dir,
 			}
-			got, err := s.createAlbumDir(tt.args.albumName)
+			got, err := s.CreateAlbumDir(tt.args.albumName)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})
 	}
 }
 
-func TestSimpleStorage_SavePhoto(t *testing.T) {
+func TestSimpleStorage_DownloadPhoto(t *testing.T) {
 	type fields struct {
 		Dir string
 	}
 	type args struct {
-		f sources.Photo
+		url,
+		albumName string
 	}
 	tests := []struct {
 		name   string
@@ -222,55 +206,50 @@ func TestSimpleStorage_SavePhoto(t *testing.T) {
 		{
 			name:   "empty url",
 			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{f: &PhotoItem{url: ""}},
+			args:   args{url: ""},
 		},
 		{
 			name:   "empty exif",
 			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{f: &PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"}},
+			args:   args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
 		},
 		{
 			name:   "404",
 			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{f: &PhotoItem{url: "https://github.com/Gasoid/photoDumper/sdf"}},
+			args:   args{url: "https://github.com/Gasoid/photoDumper/sdf"},
 		},
 		{
 			name:   "dir is empty",
 			fields: fields{Dir: ""},
-			args:   args{f: &PhotoItem{url: "https://picsum.photos/200/300.jpg", filename: "300.jpg", albumName: "300"}},
+			args:   args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
 		},
 		{
 			name:   "exif",
 			fields: fields{Dir: "/tmp/photoD"},
-			args: args{f: &PhotoItem{
+			args: args{
 				url:       "https://picsum.photos/200/300.jpg",
-				filename:  "300.jpg",
 				albumName: "300",
-				exifInfo:  &ExifInfo{gps: []float64{0, 0}},
-			}},
+			},
 		},
 		{
 			name:   "gps is nil",
 			fields: fields{Dir: "/tmp/photoD"},
-			args: args{f: &PhotoItem{
-				url:       "https://picsum.photos/200/300.jpg",
-				filename:  "300.jpg",
+			args: args{url: "https://picsum.photos/200/300.jpg",
 				albumName: "300",
-				exifInfo:  &ExifInfo{},
-			}},
+			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
+				dir: tt.fields.Dir,
 			}
-			s.SavePhoto(tt.args.f)
+			s.DownloadPhoto(tt.args.url, tt.args.albumName)
 		})
 	}
 }
 
-func TestSimpleStorage_setExifInfo(t *testing.T) {
+func TestSimpleStorage_SetExif(t *testing.T) {
 	type fields struct {
 		Dir string
 	}
@@ -287,17 +266,144 @@ func TestSimpleStorage_setExifInfo(t *testing.T) {
 		{
 			name:    "gps is nil",
 			fields:  fields{Dir: "/tmp/photoD"},
-			args:    args{filepath: "/tmp/photoD/1.jpg", photoExif: &ExifInfo{}},
+			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{}},
+			wantErr: true,
+		},
+		{
+			name:    "gps exists",
+			fields:  fields{Dir: "/tmp/photoD"},
+			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{gps: []float64{45.4545, 45.4545}}},
+			wantErr: false,
+		},
+		{
+			name:    "wrong path",
+			fields:  fields{Dir: "/tmp/photoD"},
+			args:    args{filepath: "/tmp/photoD/301.jpg"},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := &SimpleStorage{
-				Dir: tt.fields.Dir,
+				dir: tt.fields.Dir,
 			}
-			err := s.setExifInfo(tt.args.filepath, tt.args.photoExif)
+			s.DownloadPhoto("https://picsum.photos/200/300.jpg", tt.fields.Dir)
+			err := s.SetExif(tt.args.filepath, tt.args.photoExif)
 			assert.Equal(t, tt.wantErr, err != nil)
+		})
+	}
+}
+
+func Test_filename(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    string
+		wantErr bool
+	}{
+		{
+			name:    "no error",
+			args:    args{path: "https://example.com/asd.jpg"},
+			want:    "asd.jpg",
+			wantErr: false,
+		},
+		{
+			name:    "error",
+			args:    args{path: "https://example.com/asd"},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name:    "empty",
+			args:    args{path: ":/sdfsdf/sdfsdf"},
+			want:    "",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := filename(tt.args.path)
+			assert.Equal(t, tt.wantErr, err != nil)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name string
+	}{
+		{
+			name: "not nil",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := New()
+			assert.NotNil(t, got)
+		})
+	}
+}
+
+func Test_service_Kind(t *testing.T) {
+	tests := []struct {
+		name string
+		s    *service
+		want sources.Kind
+	}{
+		{
+			name: "kind",
+			s:    &service{},
+			want: sources.KindStorage,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.s.Kind()
+			assert.Equal(t, tt.want, got)
+			k := tt.s.Key()
+			assert.Equal(t, "fs", k)
+		})
+	}
+}
+
+func Test_service_Constructor(t *testing.T) {
+	tests := []struct {
+		name string
+		s    *service
+		want func() sources.Storage
+	}{
+		{
+			name: "new",
+			s:    &service{},
+			want: New,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := &service{}
+			got := s.Constructor()
+			assert.NotEmpty(t, got)
+		})
+	}
+}
+
+func TestNewService(t *testing.T) {
+	tests := []struct {
+		name string
+		want sources.ServiceStorage
+	}{
+		{
+			name: "service",
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = NewService()
 		})
 	}
 }

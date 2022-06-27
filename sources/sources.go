@@ -72,14 +72,15 @@ type ExifInfo interface {
 
 type Photo interface {
 	Url() string
-	Filename() string
 	AlbumName() string
 	ExifInfo() (ExifInfo, error)
 }
 
 type Storage interface {
-	Prepare() (string, error)
-	SavePhoto(photo Photo)
+	Prepare(dir string) (string, error)
+	CreateAlbumDir(dir string) (string, error)
+	DownloadPhoto(photoUrl, dir string) (string, error)
+	SetExif(filepath string, info ExifInfo) error
 }
 
 type Social struct {
@@ -96,8 +97,8 @@ func (s *Social) Albums() ([]map[string]string, error) {
 	return albums, nil
 }
 
-func (s *Social) DownloadAllAlbums() (string, error) {
-	dir, err := s.storage.Prepare()
+func (s *Social) DownloadAllAlbums(dir string) (string, error) {
+	dir, err := s.storage.Prepare(dir)
 	if err != nil {
 		log.Println("DownloadAllAlbums(dir string)", err)
 		return "", &StorageError{text: "dir can't be created", err: err}
@@ -109,7 +110,7 @@ func (s *Social) DownloadAllAlbums() (string, error) {
 	}
 	for _, album := range albums {
 		go func(albumID string) {
-			_, err := s.DownloadAlbum(albumID)
+			_, err := s.DownloadAlbum(albumID, dir)
 			if err != nil {
 				log.Println(err, "DownloadAllAlbums failed")
 			}
@@ -120,8 +121,8 @@ func (s *Social) DownloadAllAlbums() (string, error) {
 }
 
 // DownloadAlbum runs copying process to a particular directory
-func (s *Social) DownloadAlbum(albumID string) (string, error) {
-	dir, err := s.storage.Prepare()
+func (s *Social) DownloadAlbum(albumID, dir string) (string, error) {
+	dir, err := s.storage.Prepare(dir)
 	if err != nil {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
 		return "", &StorageError{text: "dir can't be created", err: err}
@@ -134,7 +135,22 @@ func (s *Social) savePhotos(photoCh chan Photo) {
 	for file := range photoCh {
 		f := file
 		go func() {
-			s.storage.SavePhoto(f)
+			dir, err := s.storage.CreateAlbumDir(f.AlbumName())
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			filepath, err := s.storage.DownloadPhoto(f.Url(), dir)
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			exif, err := f.ExifInfo()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			s.storage.SetExif(filepath, exif)
 		}()
 	}
 	log.Println("channel closed")
@@ -152,8 +168,8 @@ func New(sourceName, creds string) (*Social, error) {
 	}
 	s := &Social{
 		storage: storage,
+		source:  source,
 	}
-	s.source = source
 	if photoCh == nil {
 		photoCh = make(chan Photo, maxConcurrentFiles)
 		go s.savePhotos(photoCh)
