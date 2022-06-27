@@ -454,10 +454,6 @@ func TestSocial_savePhotos(t *testing.T) {
 }
 
 func TestStorageError_Error(t *testing.T) {
-	type fields struct {
-		text string
-		err  error
-	}
 	tests := []struct {
 		name string
 		err  error
