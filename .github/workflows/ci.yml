@@ -13,10 +13,12 @@ jobs:
           version: v1.46
 
   tests:
-    needs: [golanglint]
+    # needs: [golanglint]
     name: Tests
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v2
+    - run: mkdir build && touch build/index.html
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
