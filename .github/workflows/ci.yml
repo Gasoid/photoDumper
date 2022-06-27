@@ -1,7 +1,7 @@
 name: CI
 on: [push]
 jobs:
-  golangci:
+  golanglint:
     name: Linter
     runs-on: ubuntu-latest
     steps:
@@ -13,6 +13,7 @@ jobs:
           version: v1.46
 
   tests:
+    needs: [golanglint]
     name: Tests
     runs-on: ubuntu-latest
     steps:
