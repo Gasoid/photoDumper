@@ -51,14 +51,17 @@ func (s *StorageTest) SetExif(filepath string, data ExifInfo) error {
 	return s.setExifErr
 }
 
-type testFetcher struct{}
+type testFetcher struct {
+	res bool
+}
 
 func (tf *testFetcher) Next() bool {
-	return false
+	tf.res = !tf.res
+	return tf.res
 }
 
 func (tf *testFetcher) Item() Photo {
-	return nil
+	return &PhotoItem{}
 }
 
 type SourceTest struct {
@@ -250,6 +253,21 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 				creds:   "secret",
 				source:  sourceTest,
 				storage: &StorageTest{dir: "dir", err: errors.New("error")},
+			},
+			args: args{
+				albumID: "123",
+				dest:    "/tmp/photoD/album1",
+			},
+			want:    "",
+			wantErr: true,
+		},
+		{
+			name: "albumPhotos error",
+			fields: fields{
+				name:    "test",
+				creds:   "secret",
+				source:  &SourceTest{err: errors.New("error")},
+				storage: &StorageTest{dir: "dir", err: nil},
 			},
 			args: args{
 				albumID: "123",
