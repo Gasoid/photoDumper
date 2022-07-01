@@ -51,6 +51,16 @@ func (s *StorageTest) SetExif(filepath string, data ExifInfo) error {
 	return s.setExifErr
 }
 
+type testFetcher struct{}
+
+func (tf *testFetcher) Next() bool {
+	return false
+}
+
+func (tf *testFetcher) Item() Photo {
+	return nil
+}
+
 type SourceTest struct {
 	albums []map[string]string
 	err    error
@@ -59,8 +69,8 @@ type SourceTest struct {
 func (source *SourceTest) AllAlbums() ([]map[string]string, error) {
 	return source.albums, source.err
 }
-func (source *SourceTest) AlbumPhotos(albumdID string, photo chan Photo) error {
-	return source.err
+func (source *SourceTest) AlbumPhotos(albumdID string) (ItemFetcher, error) {
+	return &testFetcher{}, source.err
 }
 
 type service struct{}

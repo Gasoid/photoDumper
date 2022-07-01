@@ -59,9 +59,14 @@ func (e *AccessError) Unwrap() error {
 	return e.Err
 }
 
+type ItemFetcher interface {
+	Next() bool
+	Item() Photo
+}
+
 type Source interface {
 	AllAlbums() ([]map[string]string, error)
-	AlbumPhotos(albumdID string, photo chan Photo) error
+	AlbumPhotos(albumdID string) (ItemFetcher, error)
 }
 
 type ExifInfo interface {
@@ -127,7 +132,15 @@ func (s *Social) DownloadAlbum(albumID, dir string) (string, error) {
 		log.Println("DownloadAlbum(albumID, dir string)", err)
 		return "", &StorageError{text: "dir can't be created", err: err}
 	}
-	s.source.AlbumPhotos(albumID, photoCh)
+	cur, err := s.source.AlbumPhotos(albumID)
+	if err != nil {
+		return "", &SourceError{text: "can't receive photos", err: err}
+	}
+	go func() {
+		for cur.Next() {
+			photoCh <- cur.Item()
+		}
+	}()
 	return dir, nil
 }
 
@@ -148,6 +161,9 @@ func (s *Social) savePhotos(photoCh chan Photo) {
 			exif, err := f.ExifInfo()
 			if err != nil {
 				log.Println(err)
+				return
+			}
+			if exif == nil {
 				return
 			}
 			s.storage.SetExif(filepath, exif)

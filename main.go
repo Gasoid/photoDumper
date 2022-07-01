@@ -5,6 +5,7 @@ import (
 
 	_ "github.com/Gasoid/photoDumper/docs"
 	"github.com/Gasoid/photoDumper/sources"
+	"github.com/Gasoid/photoDumper/sources/instagram"
 	"github.com/Gasoid/photoDumper/sources/vk"
 
 	local "github.com/Gasoid/photoDumper/storage/localfs"
@@ -30,6 +31,7 @@ var staticAssets embed.FS
 // @name api_key
 func main() {
 	sources.AddSource(vk.NewService())
+	sources.AddSource(instagram.NewService())
 	sources.AddStorage(local.NewService())
 	router := setupRouter()
 	if router != nil {
