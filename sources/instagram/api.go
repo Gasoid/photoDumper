@@ -73,7 +73,7 @@ func (p *PagingResponse) Next() bool {
 	return true
 }
 
-type apiResponse map[string]interface{}
+// type apiResponse map[string]interface{}
 
 type InstagramApi struct {
 	access_token string
