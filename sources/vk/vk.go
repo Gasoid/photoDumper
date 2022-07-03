@@ -16,7 +16,6 @@ const (
 )
 
 type Vk struct {
-	token string
 	vkAPI *api.VK
 }
 
@@ -68,7 +67,7 @@ func (e *exifInfo) GPS() []float64 {
 
 // It creates a new Vk object, which is a wrapper around the vkAPI object
 func New(creds string) sources.Source {
-	return &Vk{token: creds, vkAPI: api.NewVK(creds)}
+	return &Vk{vkAPI: api.NewVK(creds)}
 }
 
 // Getting albums from vk api
@@ -95,52 +94,68 @@ func (v *Vk) AllAlbums() ([]map[string]string, error) {
 	return albums, nil
 }
 
+type photoFetcher struct {
+	nextPhoto int
+	resp      api.PhotosGetResponse
+	cur       int
+	albumName string
+}
+
+func (pf *photoFetcher) Next() bool {
+	pf.cur = pf.nextPhoto
+	if pf.cur == len(pf.resp.Items) {
+		return false
+	}
+	pf.nextPhoto++
+	return true
+}
+
 // Downloading photos from a VK album.
-func (v *Vk) AlbumPhotos(albumID string, photoCh chan sources.Photo) error {
+func (v *Vk) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
 	params := api.Params{"album_ids": albumID}
 	if strings.Contains(albumID, "-") {
 		params["need_system"] = 1
 	}
 	albumResp, err := v.vkAPI.PhotosGetAlbums(params)
 	if err != nil {
-		return makeError(err, "DownloadAlbum failed")
+		return nil, makeError(err, "DownloadAlbum failed")
 	}
 	// log.Println(albumID)
 	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1})
 	if err != nil {
 		log.Println("DownloadAlbum:", err)
-		return makeError(err, "DownloadAlbum failed")
+		return nil, makeError(err, "DownloadAlbum failed")
 	}
 	if albumResp.Count < 1 {
-		return errors.New("no such an album")
+		return nil, errors.New("no such an album")
 	}
 	if albumResp.Items[0].Title == "" {
-		return errors.New("album title is empty")
+		return nil, errors.New("album title is empty")
 	}
+	return &photoFetcher{resp: resp, albumName: albumResp.Items[0].Title}, nil
+}
 
-	for _, photo := range resp.Items {
-		var url string
-		if photo.MaxSize().URL == "" {
-			for _, s := range photo.Sizes {
-				if s.Type == "x" {
-					url = s.URL
-				}
+func (pf *photoFetcher) Item() sources.Photo {
+	photo := pf.resp.Items[pf.cur]
+	var url string
+	if photo.MaxSize().URL == "" {
+		for _, s := range photo.Sizes {
+			if s.Type == "x" {
+				url = s.URL
 			}
-		} else {
-			url = photo.MaxSize().URL
 		}
-
-		created := time.Unix(int64(photo.Date), 0)
-		photoCh <- &PhotoItem{
-			url:       url,
-			created:   created,
-			albumName: albumResp.Items[0].Title,
-			latitude:  photo.Lat,
-			longitude: photo.Long,
-		}
+	} else {
+		url = photo.MaxSize().URL
 	}
 
-	return nil
+	created := time.Unix(int64(photo.Date), 0)
+	return &PhotoItem{
+		url:       url,
+		created:   created,
+		albumName: pf.albumName,
+		latitude:  photo.Lat,
+		longitude: photo.Long,
+	}
 }
 
 func makeError(err error, text string) error {

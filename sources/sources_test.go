@@ -43,12 +43,25 @@ func (s *StorageTest) DownloadPhoto(photoUrl, dir string) (string, error) {
 	return s.downloadPhoto, s.downloadPhotoErr
 }
 
-func (s *StorageTest) CreateAlbumDir(dir string) (string, error) {
+func (s *StorageTest) CreateAlbumDir(rootDir, dir string) (string, error) {
 	return s.albumdir, s.createalbumdirErr
 }
 
 func (s *StorageTest) SetExif(filepath string, data ExifInfo) error {
 	return s.setExifErr
+}
+
+type testFetcher struct {
+	res bool
+}
+
+func (tf *testFetcher) Next() bool {
+	tf.res = !tf.res
+	return tf.res
+}
+
+func (tf *testFetcher) Item() Photo {
+	return &PhotoItem{}
 }
 
 type SourceTest struct {
@@ -59,8 +72,8 @@ type SourceTest struct {
 func (source *SourceTest) AllAlbums() ([]map[string]string, error) {
 	return source.albums, source.err
 }
-func (source *SourceTest) AlbumPhotos(albumdID string, photo chan Photo) error {
-	return source.err
+func (source *SourceTest) AlbumPhotos(albumdID string) (ItemFetcher, error) {
+	return &testFetcher{}, source.err
 }
 
 type service struct{}
@@ -248,6 +261,21 @@ func TestSocial_DownloadAlbum(t *testing.T) {
 			want:    "",
 			wantErr: true,
 		},
+		{
+			name: "albumPhotos error",
+			fields: fields{
+				name:    "test",
+				creds:   "secret",
+				source:  &SourceTest{err: errors.New("error")},
+				storage: &StorageTest{dir: "dir", err: nil},
+			},
+			args: args{
+				albumID: "123",
+				dest:    "/tmp/photoD/album1",
+			},
+			want:    "",
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -398,7 +426,7 @@ func TestSocial_savePhotos(t *testing.T) {
 		storage Storage
 	}
 	type args struct {
-		photoCh chan Photo
+		photoCh chan payload
 		exifErr error
 	}
 	tests := []struct {
@@ -438,12 +466,12 @@ func TestSocial_savePhotos(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.photoCh = make(chan Photo, maxConcurrentFiles)
+			tt.args.photoCh = make(chan payload, maxConcurrentFiles)
 			s := &Social{
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
-			tt.args.photoCh <- &PhotoItem{albumName: "album1", url: "https://example.com/asd.jpg", err: tt.args.exifErr}
+			tt.args.photoCh <- payload{photo: &PhotoItem{albumName: "album1", url: "https://example.com/asd.jpg", err: tt.args.exifErr}}
 			go func() {
 				time.Sleep(1 * time.Second)
 				close(tt.args.photoCh)

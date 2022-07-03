@@ -1,97 +1,129 @@
 package instagram
 
-// import (
-// 	"fmt"
-// 	"net/url"
-// 	"path/filepath"
-// 	"time"
+import (
+	"fmt"
+	"time"
 
-// 	"github.com/Gasoid/photoDumper/sources"
-// )
+	"github.com/Gasoid/photoDumper/sources"
+)
 
-// const (
-// 	maxCount = 1000
-// 	ID       = "vk"
-// )
+type PhotoItem struct {
+	url       string
+	albumName string
+	created   time.Time
+}
 
-// type IG struct {
-// 	token string
-// 	api   *ig.Client
-// }
+func (f *PhotoItem) Url() string {
+	return f.url
+}
 
-// // PhotoItem is a struct that contains a directory, a URL, a creation time, an album name, and a
-// // longitude and latitude.
-// type PhotoItem struct {
-// 	url       string
-// 	created   time.Time
-// 	albumName string
-// 	longitude,
-// 	latitude float64
-// }
+func (f *PhotoItem) AlbumName() string {
+	return f.albumName
+}
 
-// func (f *PhotoItem) Url() string {
-// 	return f.url
-// }
+// It's setting EXIF data for the downloaded file.
+func (f *PhotoItem) ExifInfo() (sources.ExifInfo, error) {
+	exif := &exifInfo{
+		description: fmt.Sprintf("Dumped by photoDumper. Source is vk. Username: %s", f.albumName),
+		created:     f.created,
+	}
+	return exif, nil
+}
 
-// func (f *PhotoItem) AlbumName() string {
-// 	return f.albumName
-// }
+type exifInfo struct {
+	description string
+	created     time.Time
+}
 
-// func (f *PhotoItem) Filename() string {
-// 	u, err := url.Parse(f.url)
-// 	if err != nil {
-// 		return ""
-// 	}
-// 	return filepath.Base(u.Path)
-// }
+func (e *exifInfo) Description() string {
+	return e.description
+}
 
-// // It's setting EXIF data for the downloaded file.
-// func (f *PhotoItem) ExifInfo() (sources.ExifInfo, error) {
-// 	exif := &exifInfo{
-// 		description: fmt.Sprintf("Dumped by photoDumper. Source is vk. Album name: %s", f.albumName),
-// 		created:     f.created,
-// 		gps:         []float64{f.latitude, f.longitude},
-// 	}
-// 	return exif, nil
-// }
+func (e *exifInfo) Created() time.Time {
+	return e.created
+}
 
-// type exifInfo struct {
-// 	description string
-// 	created     time.Time
-// 	gps         []float64
-// }
+func (e *exifInfo) GPS() []float64 {
+	return nil
+}
 
-// func (e *exifInfo) Description() string {
-// 	return e.description
-// }
+type service struct{}
 
-// func (e *exifInfo) Created() time.Time {
-// 	return e.created
-// }
+func (s *service) Kind() sources.Kind {
+	return sources.KindSource
+}
 
-// func (e *exifInfo) GPS() []float64 {
-// 	return e.gps
-// }
+func (s *service) Key() string {
+	return "instagram"
+}
 
-// // It creates a new Vk object, which is a wrapper around the vkAPI object
-// func New(creds string) sources.Source {
-// 	return &IG{token: creds, api: ig.NewClient(creds)}
-// }
+func (s *service) Constructor() func(creds string) sources.Source {
+	return New
+}
 
-// // Getting albums from vk api
-// func (ic *IG) AllAlbums() ([]map[string]string, error) {
+func NewService() sources.ServiceSource {
+	return &service{}
+}
 
-// 	return nil, nil
-// }
+func New(creds string) sources.Source {
+	api := &InstagramApi{access_token: creds}
+	return &Instagram{api: api}
+}
 
-// // Downloading photos from Instagram.
-// func (ic *IG) AlbumPhotos(albumID string, photoCh chan sources.Photo) error {
-// 	return nil
-// }
+type Instagram struct {
+	api *InstagramApi
+}
 
-// // func makeError(err error, text string) error {
-// // 	if errors.Is(err, api.ErrSignature) || errors.Is(err, api.ErrAccess) || errors.Is(err, api.ErrAuth) {
-// // 		return &sources.AccessError{Text: text, Err: err}
-// // 	}
-// // 	return fmt.Errorf("%s: %w", text, err)
-// // }
+func (ig *Instagram) AllAlbums() ([]map[string]string, error) {
+	resp := ig.api.Me("id", "username", "media_count")
+	media, err := ig.api.MeMedia("id", "media_url", "timestamp", "caption")
+	if err != nil {
+		return nil, &sources.AccessError{Err: err, Text: "token is invalid?"}
+	}
+	album := map[string]string{}
+	for media.Next() {
+		album = map[string]string{
+			"thumb":   media.Item().MediaUrl,
+			"title":   "All Instagram photos and videos",
+			"id":      "all_photos_and_videos",
+			"created": media.Item().Timestamp,
+			"size":    fmt.Sprint(resp.MediaCount),
+		}
+		break
+	}
+
+	albums := make([]map[string]string, 1)
+	albums[0] = album
+	return albums, nil
+}
+
+type fetcher struct {
+	media *PagingResponse
+}
+
+func (f *fetcher) Next() bool {
+	return f.media.Next()
+}
+
+func (f *fetcher) Item() sources.Photo {
+	photo := f.media.Item()
+	date, err := time.Parse("2006-01-02T15:04:05-0700", photo.Timestamp)
+	if err != nil {
+		date = time.Now()
+	}
+	return &PhotoItem{
+		url:       photo.MediaUrl,
+		albumName: photo.Username,
+		created:   date,
+		// latitude:  photo.Lat,
+		// longitude: photo.Long,
+	}
+}
+
+func (ig *Instagram) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
+	media, err := ig.api.MeMedia("id", "media_url", "timestamp", "caption", "username")
+	if err != nil {
+		return nil, &sources.AccessError{Err: err, Text: "token is invalid?"}
+	}
+	return &fetcher{media: media}, nil
+}

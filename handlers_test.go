@@ -28,7 +28,7 @@ func (s *StorageTest) DownloadPhoto(photoUrl, dir string) (string, error) {
 	return s.downloadPhoto, s.downloadPhotoErr
 }
 
-func (s *StorageTest) CreateAlbumDir(dir string) (string, error) {
+func (s *StorageTest) CreateAlbumDir(rootDir, dir string) (string, error) {
 	return s.albumdir, s.createalbumdirErr
 }
 
@@ -44,8 +44,18 @@ type SourceTest struct {
 func (source *SourceTest) AllAlbums() ([]map[string]string, error) {
 	return source.albums, source.err
 }
-func (source *SourceTest) AlbumPhotos(albumdID string, photo chan sources.Photo) error {
-	return source.err
+func (source *SourceTest) AlbumPhotos(albumdID string) (sources.ItemFetcher, error) {
+	return &testFetcher{}, source.err
+}
+
+type testFetcher struct{}
+
+func (tf *testFetcher) Next() bool {
+	return false
+}
+
+func (tf *testFetcher) Item() sources.Photo {
+	return nil
 }
 
 type service struct {

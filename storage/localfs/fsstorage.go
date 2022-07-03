@@ -15,7 +15,6 @@ import (
 )
 
 type SimpleStorage struct {
-	dir string
 }
 
 // It's a method of Social struct. It's checking if the path is absolute or relative.
@@ -44,7 +43,6 @@ func (s *SimpleStorage) Prepare(dir string) (string, error) {
 	if err != nil {
 		log.Println("prepareDir", err)
 	}
-	s.dir = dir
 	return dir, err
 }
 
@@ -65,8 +63,8 @@ func filename(path string) (string, error) {
 	return name, nil
 }
 
-func (s *SimpleStorage) CreateAlbumDir(albumName string) (string, error) {
-	albumDir := filepath.Join(s.dir, albumName)
+func (s *SimpleStorage) CreateAlbumDir(rootDir, albumName string) (string, error) {
+	albumDir := filepath.Join(rootDir, albumName)
 	err := os.MkdirAll(albumDir, 0750)
 	if err != nil {
 		log.Println("createAlbumDir:", err)
