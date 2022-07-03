@@ -16,7 +16,7 @@ const (
 var (
 	registeredSources  = map[string]func(creds string) Source{}
 	registeredStorages = map[string]func() Storage{}
-	photoCh            chan Photo
+	photoCh            chan payload
 	maxConcurrentFiles = 5
 )
 
@@ -81,9 +81,14 @@ type Photo interface {
 	ExifInfo() (ExifInfo, error)
 }
 
+type payload struct {
+	photo   Photo
+	rootDir string
+}
+
 type Storage interface {
 	Prepare(dir string) (string, error)
-	CreateAlbumDir(dir string) (string, error)
+	CreateAlbumDir(rootDir, dir string) (string, error)
 	DownloadPhoto(photoUrl, dir string) (string, error)
 	SetExif(filepath string, info ExifInfo) error
 }
@@ -138,27 +143,27 @@ func (s *Social) DownloadAlbum(albumID, dir string) (string, error) {
 	}
 	go func() {
 		for cur.Next() {
-			photoCh <- cur.Item()
+			photoCh <- payload{photo: cur.Item(), rootDir: dir}
 		}
 	}()
 	return dir, nil
 }
 
-func (s *Social) savePhotos(photoCh chan Photo) {
+func (s *Social) savePhotos(photoCh chan payload) {
 	for file := range photoCh {
 		f := file
 		go func() {
-			dir, err := s.storage.CreateAlbumDir(f.AlbumName())
+			dir, err := s.storage.CreateAlbumDir(f.rootDir, f.photo.AlbumName())
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			filepath, err := s.storage.DownloadPhoto(f.Url(), dir)
+			filepath, err := s.storage.DownloadPhoto(f.photo.Url(), dir)
 			if err != nil {
 				log.Println(err)
 				return
 			}
-			exif, err := f.ExifInfo()
+			exif, err := f.photo.ExifInfo()
 			if err != nil {
 				log.Println(err)
 				return
@@ -187,7 +192,7 @@ func New(sourceName, creds string) (*Social, error) {
 		source:  source,
 	}
 	if photoCh == nil {
-		photoCh = make(chan Photo, maxConcurrentFiles)
+		photoCh = make(chan payload, maxConcurrentFiles)
 		go s.savePhotos(photoCh)
 	}
 	return s, nil

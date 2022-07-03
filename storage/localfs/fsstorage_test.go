@@ -63,9 +63,7 @@ func TestSimpleStorage_dirPath(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				dir: tt.fields.Dir,
-			}
+			s := &SimpleStorage{}
 			got, err := s.dirPath(tt.args.dir)
 			assert.Equal(t, tt.wantErr, err != nil)
 			if tt.want == "homeDir" {
@@ -112,31 +110,25 @@ func TestSimpleStorage_Prepare(t *testing.T) {
 }
 
 func TestSimpleStorage_FilePath(t *testing.T) {
-	type fields struct {
-		Dir string
-	}
+
 	type args struct {
 		dir      string
 		filename string
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   string
+		name string
+		args args
+		want string
 	}{
 		{
-			name:   "no error",
-			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{dir: "/tmp", filename: "photo.jpg"},
-			want:   "/tmp/photo.jpg",
+			name: "no error",
+			args: args{dir: "/tmp", filename: "photo.jpg"},
+			want: "/tmp/photo.jpg",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				dir: tt.fields.Dir,
-			}
+			s := &SimpleStorage{}
 			got := s.FilePath(tt.args.dir, tt.args.filename)
 			assert.Equal(t, tt.want, got)
 		})
@@ -144,23 +136,19 @@ func TestSimpleStorage_FilePath(t *testing.T) {
 }
 
 func TestSimpleStorage_createAlbumDir(t *testing.T) {
-	type fields struct {
-		Dir string
-	}
 	type args struct {
 		albumName string
+		rootDir   string
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    string
 		wantErr bool
 	}{
 		{
 			name:    "no error",
-			fields:  fields{Dir: "/tmp/photoD"},
-			args:    args{albumName: "album1"},
+			args:    args{albumName: "album1", rootDir: "/tmp/photoD"},
 			want:    "/tmp/photoD/album1",
 			wantErr: false,
 		},
@@ -174,10 +162,8 @@ func TestSimpleStorage_createAlbumDir(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				dir: tt.fields.Dir,
-			}
-			got, err := s.CreateAlbumDir(tt.args.albumName)
+			s := &SimpleStorage{}
+			got, err := s.CreateAlbumDir(tt.args.rootDir, tt.args.albumName)
 			assert.Equal(t, tt.wantErr, err != nil)
 			assert.Equal(t, tt.want, got)
 		})
@@ -185,55 +171,44 @@ func TestSimpleStorage_createAlbumDir(t *testing.T) {
 }
 
 func TestSimpleStorage_DownloadPhoto(t *testing.T) {
-	type fields struct {
-		Dir string
-	}
 	type args struct {
 		url,
 		albumName string
 	}
 	tests := []struct {
-		name   string
-		fields fields
-		args   args
+		name string
+		args args
 		//photoItem PhotoItem
 	}{
 		{
-			name:   "empty f",
-			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{},
+			name: "empty f",
+			args: args{},
 		},
 		{
-			name:   "empty url",
-			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{url: ""},
+			name: "empty url",
+			args: args{url: ""},
 		},
 		{
-			name:   "empty exif",
-			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
+			name: "empty exif",
+			args: args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
 		},
 		{
-			name:   "404",
-			fields: fields{Dir: "/tmp/photoD"},
-			args:   args{url: "https://github.com/Gasoid/photoDumper/sdf"},
+			name: "404",
+			args: args{url: "https://github.com/Gasoid/photoDumper/sdf"},
 		},
 		{
-			name:   "dir is empty",
-			fields: fields{Dir: ""},
-			args:   args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
+			name: "dir is empty",
+			args: args{url: "https://picsum.photos/200/300.jpg", albumName: "300"},
 		},
 		{
-			name:   "exif",
-			fields: fields{Dir: "/tmp/photoD"},
+			name: "exif",
 			args: args{
 				url:       "https://picsum.photos/200/300.jpg",
 				albumName: "300",
 			},
 		},
 		{
-			name:   "gps is nil",
-			fields: fields{Dir: "/tmp/photoD"},
+			name: "gps is nil",
 			args: args{url: "https://picsum.photos/200/300.jpg",
 				albumName: "300",
 			},
@@ -241,53 +216,42 @@ func TestSimpleStorage_DownloadPhoto(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				dir: tt.fields.Dir,
-			}
+			s := &SimpleStorage{}
 			s.DownloadPhoto(tt.args.url, tt.args.albumName)
 		})
 	}
 }
 
 func TestSimpleStorage_SetExif(t *testing.T) {
-	type fields struct {
-		Dir string
-	}
 	type args struct {
 		filepath  string
 		photoExif sources.ExifInfo
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		wantErr bool
 	}{
 		{
 			name:    "gps is nil",
-			fields:  fields{Dir: "/tmp/photoD"},
 			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{}},
 			wantErr: true,
 		},
 		{
 			name:    "gps exists",
-			fields:  fields{Dir: "/tmp/photoD"},
 			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: &ExifInfo{gps: []float64{45.4545, 45.4545}}},
 			wantErr: false,
 		},
 		{
 			name:    "wrong path",
-			fields:  fields{Dir: "/tmp/photoD"},
 			args:    args{filepath: "/tmp/photoD/301.jpg"},
 			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &SimpleStorage{
-				dir: tt.fields.Dir,
-			}
-			s.DownloadPhoto("https://picsum.photos/200/300.jpg", tt.fields.Dir)
+			s := &SimpleStorage{}
+			s.DownloadPhoto("https://picsum.photos/200/300.jpg", "/tmp/photoD/")
 			err := s.SetExif(tt.args.filepath, tt.args.photoExif)
 			assert.Equal(t, tt.wantErr, err != nil)
 		})

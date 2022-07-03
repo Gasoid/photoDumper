@@ -43,7 +43,7 @@ func (s *StorageTest) DownloadPhoto(photoUrl, dir string) (string, error) {
 	return s.downloadPhoto, s.downloadPhotoErr
 }
 
-func (s *StorageTest) CreateAlbumDir(dir string) (string, error) {
+func (s *StorageTest) CreateAlbumDir(rootDir, dir string) (string, error) {
 	return s.albumdir, s.createalbumdirErr
 }
 
@@ -426,7 +426,7 @@ func TestSocial_savePhotos(t *testing.T) {
 		storage Storage
 	}
 	type args struct {
-		photoCh chan Photo
+		photoCh chan payload
 		exifErr error
 	}
 	tests := []struct {
@@ -466,12 +466,12 @@ func TestSocial_savePhotos(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.args.photoCh = make(chan Photo, maxConcurrentFiles)
+			tt.args.photoCh = make(chan payload, maxConcurrentFiles)
 			s := &Social{
 				source:  tt.fields.source,
 				storage: tt.fields.storage,
 			}
-			tt.args.photoCh <- &PhotoItem{albumName: "album1", url: "https://example.com/asd.jpg", err: tt.args.exifErr}
+			tt.args.photoCh <- payload{photo: &PhotoItem{albumName: "album1", url: "https://example.com/asd.jpg", err: tt.args.exifErr}}
 			go func() {
 				time.Sleep(1 * time.Second)
 				close(tt.args.photoCh)

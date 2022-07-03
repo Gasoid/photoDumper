@@ -28,7 +28,7 @@ func (s *StorageTest) DownloadPhoto(photoUrl, dir string) (string, error) {
 	return s.downloadPhoto, s.downloadPhotoErr
 }
 
-func (s *StorageTest) CreateAlbumDir(dir string) (string, error) {
+func (s *StorageTest) CreateAlbumDir(rootDir, dir string) (string, error) {
 	return s.albumdir, s.createalbumdirErr
 }
 
