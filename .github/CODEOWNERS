@@ -1,0 +1,5 @@
+# Global admin
+*       @Gasoid
+
+# only golang files
+*.go    @Gasoid

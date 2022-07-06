@@ -25,7 +25,6 @@ func (s *SimpleStorage) dirPath(dir string) (string, error) {
 	if dir[:1] == "~" {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			log.Println("filePath()", err)
 			return "", err
 		}
 		dir = filepath.Join(home, filepath.FromSlash(dir[1:]))
@@ -40,9 +39,6 @@ func (s *SimpleStorage) Prepare(dir string) (string, error) {
 		return "", err
 	}
 	err = os.MkdirAll(dir, 0750)
-	if err != nil {
-		log.Println("prepareDir", err)
-	}
 	return dir, err
 }
 
@@ -67,7 +63,6 @@ func (s *SimpleStorage) CreateAlbumDir(rootDir, albumName string) (string, error
 	albumDir := filepath.Join(rootDir, albumName)
 	err := os.MkdirAll(albumDir, 0750)
 	if err != nil {
-		log.Println("createAlbumDir:", err)
 		return "", fmt.Errorf("createAlbumDir: %w", err)
 	}
 	return albumDir, nil
@@ -86,11 +81,7 @@ func (s *SimpleStorage) DownloadPhoto(url, dir string) (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	name, err := filename(url)
-	if err != nil {
-		log.Println(err)
-		return "", err
-	}
+	name, _ := filename(url)
 	filepath := s.FilePath(dir, name)
 	// Create the file
 	out, err := os.Create(filepath)
@@ -102,7 +93,6 @@ func (s *SimpleStorage) DownloadPhoto(url, dir string) (string, error) {
 	// Write the body to file
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		log.Println(err)
 		return "", err
 	}
 	out.Close()
@@ -122,12 +112,10 @@ func (s *SimpleStorage) SetExif(filepath string, photoExif sources.ExifInfo) err
 	}
 	err = image.SetDescription(photoExif.Description())
 	if err != nil {
-		log.Println("image.SetDescription", err)
 		return err
 	}
 	err = image.SetTime(photoExif.Created())
 	if err != nil {
-		log.Println("image.SetTime", err)
 		return err
 	}
 	gps := photoExif.GPS()
@@ -136,7 +124,6 @@ func (s *SimpleStorage) SetExif(filepath string, photoExif sources.ExifInfo) err
 	}
 	err = image.SetGPS(gps[0], gps[1])
 	if err != nil {
-		log.Println("image.SetGPS", err)
 		return err
 	}
 
