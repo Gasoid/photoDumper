@@ -247,6 +247,11 @@ func TestSimpleStorage_SetExif(t *testing.T) {
 			args:    args{filepath: "/tmp/photoD/301.jpg"},
 			wantErr: true,
 		},
+		{
+			name:    "photoExif is nil",
+			args:    args{filepath: "/tmp/photoD/300.jpg", photoExif: nil},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
