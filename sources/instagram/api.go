@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -150,7 +149,7 @@ func (api *InstagramApi) do(req *http.Request, r interface{}) error {
 		return err
 	}
 	defer func() {
-		io.CopyN(ioutil.Discard, resp.Body, 512)
+		io.CopyN(io.Discard, resp.Body, 512)
 		resp.Body.Close()
 	}()
 
