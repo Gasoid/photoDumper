@@ -9,6 +9,7 @@ import (
 
 	"github.com/Gasoid/photoDumper/sources"
 	"github.com/SevereCloud/vksdk/v2/api"
+	"github.com/SevereCloud/vksdk/v2/object"
 )
 
 const (
@@ -96,14 +97,14 @@ func (v *Vk) AllAlbums() ([]map[string]string, error) {
 
 type photoFetcher struct {
 	nextPhoto int
-	resp      api.PhotosGetResponse
+	items     []object.PhotosPhoto
 	cur       int
 	albumName string
 }
 
 func (pf *photoFetcher) Next() bool {
 	pf.cur = pf.nextPhoto
-	if pf.cur == len(pf.resp.Items) {
+	if pf.cur == len(pf.items) {
 		return false
 	}
 	pf.nextPhoto++
@@ -120,11 +121,15 @@ func (v *Vk) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
 	if err != nil {
 		return nil, makeError(err, "DownloadAlbum failed")
 	}
-	// log.Println(albumID)
-	resp, err := v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1})
-	if err != nil {
-		log.Println("DownloadAlbum:", err)
-		return nil, makeError(err, "DownloadAlbum failed")
+	var resp api.PhotosGetResponse
+	items := make([]object.PhotosPhoto, 0, albumResp.Count)
+	for offset := 1; offset <= albumResp.Count; offset += maxCount {
+		resp, err = v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1, "offset": offset})
+		if err != nil {
+			log.Println("DownloadAlbum:", err)
+			return nil, makeError(err, "DownloadAlbum failed")
+		}
+		items = append(items, resp.Items...)
 	}
 	if albumResp.Count < 1 {
 		return nil, errors.New("no such an album")
@@ -132,11 +137,12 @@ func (v *Vk) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
 	if albumResp.Items[0].Title == "" {
 		return nil, errors.New("album title is empty")
 	}
-	return &photoFetcher{resp: resp, albumName: albumResp.Items[0].Title}, nil
+
+	return &photoFetcher{items: items, albumName: albumResp.Items[0].Title}, nil
 }
 
 func (pf *photoFetcher) Item() sources.Photo {
-	photo := pf.resp.Items[pf.cur]
+	photo := pf.items[pf.cur]
 	var url string
 	if photo.MaxSize().URL == "" {
 		for _, s := range photo.Sizes {
