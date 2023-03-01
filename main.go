@@ -2,11 +2,13 @@ package main
 
 import (
 	"embed"
+	"time"
 
 	_ "github.com/Gasoid/photoDumper/docs"
 	"github.com/Gasoid/photoDumper/sources"
 	"github.com/Gasoid/photoDumper/sources/instagram"
 	"github.com/Gasoid/photoDumper/sources/vk"
+	"github.com/pkg/browser"
 
 	local "github.com/Gasoid/photoDumper/storage/localfs"
 )
@@ -15,7 +17,7 @@ import (
 var staticAssets embed.FS
 
 // @title        PhotoDumper
-// @version      1.1.2
+// @version      1.2.0
 // @description  app downloads photos from vk.
 
 // @contact.name  Rinat Almakhov
@@ -35,6 +37,10 @@ func main() {
 	sources.AddStorage(local.NewService())
 	router := setupRouter()
 	if router != nil {
+		go func() {
+			time.Sleep(time.Second * 5)
+			browser.OpenURL("http://localhost:8080")
+		}()
 		router.Run(":8080")
 	}
 }
