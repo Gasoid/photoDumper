@@ -13,7 +13,7 @@ import (
 
 func setupRouter() *gin.Engine {
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8080"}
+	config.AllowOrigins = []string{"*"}
 	assets, err := fs.Sub(staticAssets, "build")
 	if err != nil {
 		fmt.Println("build folder is not readable")
