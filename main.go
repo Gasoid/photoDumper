@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"net/http"
 	"time"
 
 	_ "github.com/Gasoid/photoDumper/docs"
@@ -13,8 +14,17 @@ import (
 	local "github.com/Gasoid/photoDumper/storage/localfs"
 )
 
-//go:embed build/*
-var staticAssets embed.FS
+type engine interface {
+	Run(addr ...string) error
+	ServeHTTP(http.ResponseWriter, *http.Request)
+}
+
+var (
+	//go:embed build/*
+	staticAssets    embed.FS
+	setupRouterFunc func() engine = setupRouter
+	openBrowserFunc func(string)  = openBrowser
+)
 
 // @title        PhotoDumper
 // @version      1.2.0
@@ -35,12 +45,14 @@ func main() {
 	sources.AddSource(vk.NewService())
 	sources.AddSource(instagram.NewService())
 	sources.AddStorage(local.NewService())
-	router := setupRouter()
+	router := setupRouterFunc()
 	if router != nil {
-		go func() {
-			time.Sleep(time.Second * 5)
-			browser.OpenURL("http://localhost:8080")
-		}()
+		go openBrowserFunc("http://localhost:8080")
 		router.Run(":8080")
 	}
+}
+
+func openBrowser(url string) {
+	time.Sleep(time.Second * 5)
+	browser.OpenURL(url)
 }

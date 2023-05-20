@@ -82,6 +82,9 @@ func (ig *Instagram) AllAlbums() ([]map[string]string, error) {
 	}
 	album := map[string]string{}
 	for media.Next() {
+		if media.Item().MediaType != IMAGE_TYPE {
+			continue
+		}
 		album = map[string]string{
 			"thumb":   media.Item().MediaUrl,
 			"title":   "All Instagram photos and videos",
