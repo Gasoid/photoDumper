@@ -117,7 +117,7 @@ func buildGetRequest(urlStr string, params url.Values) (*http.Request, error) {
 	// If we are getting, then we can't merge query params
 	if params != nil {
 		if u.RawQuery != "" {
-			return nil, fmt.Errorf("Cannot merge query params in urlStr and params")
+			return nil, fmt.Errorf("cannot merge query params in urlStr and params")
 		}
 		u.RawQuery = params.Encode()
 	}

@@ -11,7 +11,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func setupRouter() *gin.Engine {
+func setupRouter() engine {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"*"}
 	assets, err := fs.Sub(staticAssets, "build")
