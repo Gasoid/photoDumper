@@ -22,7 +22,7 @@ jobs:
     - name: Set up Go 1.x
       uses: actions/setup-go@v2
       with:
-        go-version: ^1.18
+        go-version: ^1.21
       id: go
 
     - uses: actions/cache@v3
@@ -41,3 +41,40 @@ jobs:
         files: ./coverage.txt
         fail_ci_if_error: true
         verbose: true
+
+  build:
+    runs-on: ubuntu-latest
+    # strategy:
+    #   matrix:
+    #     os-name: [ 'linux', 'darwin', 'windows' ]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go 1.x
+      uses: actions/setup-go@v2
+      with:
+        go-version: ^1.21
+      id: go
+
+    - uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Building bin files
+      run: |
+      mkdir artifacts
+      go mod download
+      go generate staticAssets.go
+      CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o artifacts/photoDumper.linux .
+      CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o artifacts/photoDumper.osx .
+      CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o artifacts/photoDumper.m1 .
+      CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -a -o artifacts/photoDumper.exe .
+
+    - name: Archive artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: bin files
+        path: |
+          artifacts
