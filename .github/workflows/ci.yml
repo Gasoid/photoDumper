@@ -68,7 +68,7 @@ jobs:
         mkdir artifacts
         go mod download
         curl -sL https://github.com/Gasoid/photoDumper/releases/download/1.1.0/build.zip -o build.zip
-        gunzip build.zip
+        unzip build.zip
         CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o artifacts/photoDumper.linux .
         CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o artifacts/photoDumper.osx .
         CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o artifacts/photoDumper.m1 .
