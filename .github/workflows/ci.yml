@@ -43,6 +43,7 @@ jobs:
         verbose: true
 
   build:
+    name: Build
     runs-on: ubuntu-latest
     # strategy:
     #   matrix:
@@ -66,8 +67,8 @@ jobs:
       run: |
         mkdir artifacts
         go mod download
-        curl -s https://github.com/Gasoid/photoDumper/releases/download/1.1.0/build.zip -o build.zip
-        gunzip build.zip
+        curl -s https://github.com/Gasoid/photoDumper/releases/download/1.1.0/build.zip -o build.gz
+        gunzip build.gz
         CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -o artifacts/photoDumper.linux .
         CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -a -o artifacts/photoDumper.osx .
         CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -a -o artifacts/photoDumper.m1 .
