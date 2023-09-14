@@ -119,10 +119,12 @@ func (s *Social) DownloadAllAlbums(dir string) (string, error) {
 		return "", err
 	}
 	for _, album := range albums {
-		_, err := s.DownloadAlbum(album["id"], dir)
-		if err != nil {
-			log.Println(err, "DownloadAllAlbums failed")
-		}
+		go func(albumID string) {
+			_, err := s.DownloadAlbum(albumID, dir)
+			if err != nil {
+				log.Println(err, "DownloadAllAlbums failed")
+			}
+		}(album["id"])
 	}
 
 	return dir, nil
