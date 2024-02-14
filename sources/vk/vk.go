@@ -146,7 +146,7 @@ func (pf *photoFetcher) Item() sources.Photo {
 	var url string
 	if photo.MaxSize().URL == "" {
 		for _, s := range photo.Sizes {
-			if s.Type == "x" {
+			if s.Type == "x" || s.Type == "y" || s.Type == "z" || s.Type == "w" {
 				url = s.URL
 			}
 		}
