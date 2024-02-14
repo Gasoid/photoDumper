@@ -123,7 +123,7 @@ func (v *Vk) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
 	}
 	var resp api.PhotosGetResponse
 	items := make([]object.PhotosPhoto, 0, albumResp.Count)
-	for offset := 1; offset <= albumResp.Count; offset += maxCount {
+	for offset := 0; offset <= albumResp.Count; offset += maxCount {
 		resp, err = v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1, "offset": offset})
 		if err != nil {
 			log.Println("DownloadAlbum:", err)
