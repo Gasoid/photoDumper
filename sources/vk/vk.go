@@ -121,23 +121,25 @@ func (v *Vk) AlbumPhotos(albumID string) (sources.ItemFetcher, error) {
 	if err != nil {
 		return nil, makeError(err, "DownloadAlbum failed")
 	}
-	var resp api.PhotosGetResponse
-	items := make([]object.PhotosPhoto, 0, albumResp.Count)
-	for offset := 0; offset <= albumResp.Count; offset += maxCount {
-		resp, err = v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1, "offset": offset})
-		if err != nil {
-			log.Println("DownloadAlbum:", err)
-			return nil, makeError(err, "DownloadAlbum failed")
-		}
-		items = append(items, resp.Items...)
-	}
-	if albumResp.Count < 1 {
+	if albumResp.Count < 1 || len(albumResp.Items) < 1 {
 		return nil, errors.New("no such an album")
 	}
 	if albumResp.Items[0].Title == "" {
 		return nil, errors.New("album title is empty")
 	}
-
+	var resp api.PhotosGetResponse
+	items := make([]object.PhotosPhoto, 0, albumResp.Items[0].Size)
+	for offset := 0; offset < albumResp.Items[0].Size; offset += maxCount {
+		resp, err = v.vkAPI.PhotosGet(api.Params{"album_id": albumID, "count": maxCount, "photo_sizes": 1, "offset": offset})
+		if err != nil {
+			log.Println("DownloadAlbum:", err)
+			continue
+		}
+		items = append(items, resp.Items...)
+	}
+	if len(items) < 1 {
+		return nil, makeError(err, "DownloadAlbum failed")
+	}
 	return &photoFetcher{items: items, albumName: albumResp.Items[0].Title}, nil
 }
 

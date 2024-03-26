@@ -48,3 +48,7 @@ swag fmt
 - скачать все альбомы с вконтакте без регистрации и смс
 - скачать фото с вк бесплатно
 - приложение для скачивания всех фото из вк
+
+## Support
+**If you want to support my project you can buy something from this wishlist on amazon**
+https://www.amazon.de/hz/wishlist/ls/H7GAFNFUC063?ref_=wl_share
