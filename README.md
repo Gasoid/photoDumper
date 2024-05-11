@@ -7,6 +7,15 @@ Tool downloads photos from VK albums (except from system albums)
 
 ![screen](screen.webp)
 
+## Homebrew
+`brew install gasoid/photodumper/photodumper`
+
+Or `brew tap gasoid/photodumper` and then `brew install photodumper`.
+
+and finally run:
+```
+photodumper
+```
 
 ## Download page
 [go to Download page](https://github.com/Gasoid/photoDumper/releases)
