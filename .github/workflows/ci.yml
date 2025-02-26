@@ -36,12 +36,11 @@ jobs:
       run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
 
     - uses: codecov/codecov-action@v5
-      env:
-        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         name: Upload coverage
         files: ./coverage.txt
         fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
 
   build:
