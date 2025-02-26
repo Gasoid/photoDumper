@@ -35,11 +35,6 @@ jobs:
     - name: Test
       run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
 
-    - name: Test 2
-      run: echo -n $TOKEN | base64
-      env:
-        TOKEN: ${{ secrets.TEST_TOKEN }}
-
     - uses: codecov/codecov-action@v5
       with:
         name: Upload coverage
