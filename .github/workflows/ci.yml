@@ -16,8 +16,6 @@ jobs:
     # needs: [golanglint]
     name: Tests
     runs-on: ubuntu-latest
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
     - uses: actions/checkout@v2
     - run: mkdir build && touch build/index.html
@@ -38,6 +36,8 @@ jobs:
       run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
 
     - uses: codecov/codecov-action@v2
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       with:
         name: Upload coverage
         files: ./coverage.txt
