@@ -10,7 +10,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.56
+          version: v1.64.5
 
   tests:
     # needs: [golanglint]
@@ -35,11 +35,12 @@ jobs:
     - name: Test
       run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
 
-    - uses: codecov/codecov-action@v2
+    - uses: codecov/codecov-action@v5
       with:
         name: Upload coverage
         files: ./coverage.txt
         fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
 
   build:
