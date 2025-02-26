@@ -10,12 +10,14 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.56
+          version: v1.64.5
 
   tests:
     # needs: [golanglint]
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     steps:
     - uses: actions/checkout@v2
     - run: mkdir build && touch build/index.html
