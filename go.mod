@@ -1,6 +1,6 @@
 module github.com/Gasoid/photoDumper
 
-go 1.21
+go 1.24
 
 require (
 	github.com/Gasoid/simpleGoExif v0.0.0-20220604194453-0d9eceebe743
@@ -43,7 +43,7 @@ require (
 	github.com/golang/geo v0.0.0-20200319012246-673a6f80352d // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.4 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/mailru/easyjson v0.7.6 // indirect
